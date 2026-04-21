@@ -1,0 +1,44 @@
+# Security & Credentials
+*.pem
+*.key
+*.pfx
+*.p12
+*.pub
+.ssh/
+.gpg/
+*.env
+*.env.local
+.env.*.local
+
+# Backups
+*.backup
+*.backup.*
+*.bak
+*.swp
+*.swo
+*~
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+.DS_Store
+.directory
+
+# OS
+Thumbs.db
+.Thumbs.db
+desktop.ini
+
+# System
+*.log
+*.pid
+.tmp/
+tmp/
+
+# Sensitive files
+*.private
+.private/
+secrets/
