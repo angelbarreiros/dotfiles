@@ -1,14 +1,21 @@
 #!/bin/bash
 
-# Deploy dotfiles from this repo to the home directory
-# This script replaces existing config files with the ones from the repo
+# Deploy user dotfiles from this repo to the home directory
+# This script only manages ~/.config/ - it does NOT modify ~/.local/share/omarchy/
+# (which is managed by the system and must remain read-only)
 
 set -e
 
 CONFIG_DIR="./.config"
 DEST_CONFIG_DIR="$HOME/.config"
+BACKUP_DIR="$HOME/.dotfiles-backups"
+TIMESTAMP=$(date +%s)
 
 echo "🔄 Deploying dotfiles from $(pwd)..."
+echo "📦 Backup timestamp: $TIMESTAMP ($(date -d @$TIMESTAMP '+%Y-%m-%d %H:%M:%S'))"
+echo ""
+
+mkdir -p "$BACKUP_DIR/$TIMESTAMP"
 
 # Function to backup and copy a file
 backup_and_copy() {
@@ -16,9 +23,11 @@ backup_and_copy() {
     local dest="$2"
     
     if [ -f "$dest" ]; then
-        local backup="${dest}.backup.$(date +%s)"
-        echo "  📦 Backing up: $dest → $backup"
-        cp "$dest" "$backup"
+        local relative_path="${dest#$HOME/}"
+        local backup_file="$BACKUP_DIR/$TIMESTAMP/$relative_path"
+        mkdir -p "$(dirname "$backup_file")"
+        echo "  📦 Backing up: $relative_path"
+        cp "$dest" "$backup_file"
     fi
     
     echo "  ✓ Installing: $dest"
@@ -31,9 +40,11 @@ backup_and_copy_dir() {
     local dest="$2"
     
     if [ -d "$dest" ]; then
-        local backup="${dest}.backup.$(date +%s)"
-        echo "  📦 Backing up: $dest → $backup"
-        cp -r "$dest" "$backup"
+        local relative_path="${dest#$HOME/}"
+        local backup_dir="$BACKUP_DIR/$TIMESTAMP/$relative_path"
+        mkdir -p "$backup_dir"
+        echo "  📦 Backing up: $relative_path"
+        cp -r "$dest"/* "$backup_dir/" 2>/dev/null || true
     fi
     
     echo "  ✓ Installing: $dest"
@@ -42,11 +53,13 @@ backup_and_copy_dir() {
 }
 
 # Copy Hyprland config
-if [ -f "$CONFIG_DIR/hypr/input.conf" ]; then
+if [ -d "$CONFIG_DIR/hypr" ]; then
     echo ""
     echo "📋 Hyprland Configuration:"
     mkdir -p $DEST_CONFIG_DIR/hypr
+    backup_and_copy "$CONFIG_DIR/hypr/env.conf" $DEST_CONFIG_DIR/hypr/env.conf
     backup_and_copy "$CONFIG_DIR/hypr/input.conf" $DEST_CONFIG_DIR/hypr/input.conf
+    backup_and_copy "$CONFIG_DIR/hypr/bindings.conf" $DEST_CONFIG_DIR/hypr/bindings.conf
 fi
 
 # Copy Git config
@@ -59,4 +72,18 @@ fi
 
 echo ""
 echo "✅ Dotfiles deployed successfully!"
-echo "📝 Backups created with .backup.TIMESTAMP suffix if files were replaced"
+if [ "$(ls -A $BACKUP_DIR/$TIMESTAMP 2>/dev/null)" ]; then
+    echo "📦 Backup saved to: $BACKUP_DIR/$TIMESTAMP"
+else
+    echo "ℹ️  No backups were created (first deployment)"
+fi
+
+# Reload Hyprland config if available
+if command -v hyprctl &> /dev/null; then
+    echo ""
+    echo "🔄 Reloading Hyprland..."
+    hyprctl reload
+    echo "✓ Hyprland reloaded"
+fi
+
+echo "💡 Use ./restore.sh to rollback to a previous version"
