@@ -46,6 +46,7 @@ This script will:
   ├── hypr/          # Hyprland window manager configuration
   ├── waybar/        # Status bar configuration
   ├── alacritty/     # Alacritty terminal configuration
+  ├── tmux/          # Tmux terminal multiplexer configuration
   ├── kitty/         # Kitty terminal configuration
   └── ...            # Other configuration directories
 

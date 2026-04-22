@@ -63,19 +63,40 @@ if [ -d "$CONFIG_DIR/hypr" ]; then
     
 fi
 
-# Copy WebApps config
-if [ -d "$CONFIG_DIR/webapps" ]; then
-    echo ""
-    echo "🌐 WebApps Configuration:"
-    backup_and_copy_dir "$CONFIG_DIR/webapps" $DEST_CONFIG_DIR/webapps
-fi
-
 # Copy Git config
 if [ -f "$CONFIG_DIR/git/config" ]; then
     echo ""
     echo "🔧 Git Configuration:"
     mkdir -p $DEST_CONFIG_DIR/git
     backup_and_copy "$CONFIG_DIR/git/config" $DEST_CONFIG_DIR/git/config
+fi
+
+# Copy Alacritty config
+if [ -f "$CONFIG_DIR/alacritty/alacritty.toml" ]; then
+    echo ""
+    echo "🖥️  Alacritty Configuration:"
+    mkdir -p $DEST_CONFIG_DIR/alacritty
+    backup_and_copy "$CONFIG_DIR/alacritty/alacritty.toml" $DEST_CONFIG_DIR/alacritty/alacritty.toml
+fi
+
+# Copy Tmux config
+if [ -f "$CONFIG_DIR/tmux/tmux.conf" ]; then
+    echo ""
+    echo "📋 Tmux Configuration:"
+    mkdir -p $DEST_CONFIG_DIR/tmux
+    backup_and_copy "$CONFIG_DIR/tmux/tmux.conf" $DEST_CONFIG_DIR/tmux/tmux.conf
+fi
+
+# Copy root .tmux.conf
+if [ -f ".tmux.conf" ]; then
+    echo "  ✓ Installing: ~/.tmux.conf"
+    if [ -f "$HOME/.tmux.conf" ]; then
+        backup_file="$BACKUP_DIR/$TIMESTAMP/.tmux.conf"
+        mkdir -p "$(dirname "$backup_file")"
+        echo "  📦 Backing up: .tmux.conf"
+        cp "$HOME/.tmux.conf" "$backup_file"
+    fi
+    cp ".tmux.conf" "$HOME/.tmux.conf"
 fi
 
 echo ""
