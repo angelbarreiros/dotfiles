@@ -60,6 +60,14 @@ if [ -d "$CONFIG_DIR/hypr" ]; then
     backup_and_copy "$CONFIG_DIR/hypr/env.conf" $DEST_CONFIG_DIR/hypr/env.conf
     backup_and_copy "$CONFIG_DIR/hypr/input.conf" $DEST_CONFIG_DIR/hypr/input.conf
     backup_and_copy "$CONFIG_DIR/hypr/bindings.conf" $DEST_CONFIG_DIR/hypr/bindings.conf
+    
+fi
+
+# Copy WebApps config
+if [ -d "$CONFIG_DIR/webapps" ]; then
+    echo ""
+    echo "🌐 WebApps Configuration:"
+    backup_and_copy_dir "$CONFIG_DIR/webapps" $DEST_CONFIG_DIR/webapps
 fi
 
 # Copy Git config
@@ -84,6 +92,15 @@ if command -v hyprctl &> /dev/null; then
     echo "🔄 Reloading Hyprland..."
     hyprctl reload
     echo "✓ Hyprland reloaded"
+fi
+
+# Update desktop app database
+if command -v update-desktop-database &> /dev/null; then
+    echo ""
+    echo "🔄 Updating desktop app database..."
+    mkdir -p "$HOME/.local/share/applications"
+    update-desktop-database "$HOME/.local/share/applications"
+    echo "✓ Desktop apps updated"
 fi
 
 echo "💡 Use ./restore.sh to rollback to a previous version"

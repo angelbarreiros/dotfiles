@@ -91,4 +91,11 @@ done < <(find "$selected_backup" -type f)
 echo ""
 echo "✅ Restore completed!"
 echo "📝 Current state backed up to: $BACKUP_DIR/$current_timestamp"
-echo "💡 Run 'hyprctl reload' to apply Hyprland config changes"
+
+# Reload Hyprland config if available
+if command -v hyprctl &> /dev/null; then
+    echo ""
+    echo "🔄 Reloading Hyprland..."
+    hyprctl reload
+    echo "✓ Hyprland reloaded"
+fi

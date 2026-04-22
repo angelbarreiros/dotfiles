@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Gmail
+Comment=Gmail Web App
+Exec=google-chrome --app="https://gmail.com" %U
+Icon=gmail
+Type=Application
+Categories=Internet;Utility;
+StartupNotify=true
