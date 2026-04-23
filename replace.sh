@@ -61,6 +61,7 @@ if [ -d "$CONFIG_DIR/hypr" ]; then
     backup_and_copy "$CONFIG_DIR/hypr/input.conf" $DEST_CONFIG_DIR/hypr/input.conf
     backup_and_copy "$CONFIG_DIR/hypr/bindings.conf" $DEST_CONFIG_DIR/hypr/bindings.conf
     backup_and_copy "$CONFIG_DIR/hypr/monitors.conf" $DEST_CONFIG_DIR/hypr/monitors.conf
+    backup_and_copy "$CONFIG_DIR/hypr/autostart.conf" $DEST_CONFIG_DIR/hypr/autostart.conf
     
 fi
 
