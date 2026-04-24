@@ -1,0 +1,11 @@
+include=~/.local/share/omarchy/default/mako/core.ini
+
+# Always use mako's own timeout; ignore the expire_timeout sent by apps.
+# Without this, Chromium webapps (Gmail, WhatsApp) send expire_timeout=-1
+# which makes notifications stay forever until manually dismissed.
+ignore-timeout=1
+max-visible=3
+
+text-color=#cdd6f4
+border-color=#89b4fa
+background-color=#1e1e2e

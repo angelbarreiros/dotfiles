@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Restore user dotfiles from timestamped backups
-# This script only restores ~/.config/ - it does NOT modify ~/.local/share/omarchy/
+# This script restores managed paths from backup (~/.config and selected desktop entries).
+# It does NOT modify ~/.local/share/omarchy/
 # (which is managed by the system and must remain read-only)
 
 set -e

@@ -1,0 +1,1 @@
+/home/demper/projects/demper/dotfiles/.config/waybar/notification-center-tui/target/release/omarchy-notification-center: /home/demper/projects/demper/dotfiles/.config/waybar/notification-center-tui/src/main.rs

@@ -9,6 +9,7 @@ This repository contains configuration files for:
 - **Waybar** - Customizable taskbar/status bar
 - **Terminal emulators** - Alacritty, Kitty, Ghostty
 - **Application bindings** - Keyboard shortcuts and application launchers
+- **Webapp launchers** - Desktop entries for app-mode webapps
 - **System configuration** - Window rules, animations, display settings, and themes
 
 ## Usage
@@ -24,6 +25,7 @@ To deploy these dotfiles to your system:
 This script will:
 - Backup your existing `~/.config/` files to `~/.dotfiles-backups/[timestamp]/`
 - Copy configuration files from this repository to your `~/.config/`
+- Backup and copy selected `~/.local/share/applications/*.desktop` webapp launchers
 - Create timestamped backups for safe restoration
 
 ### Restore Configuration
@@ -50,7 +52,7 @@ This script will:
   ├── kitty/         # Kitty terminal configuration
   └── ...            # Other configuration directories
 
-replace.sh           # Deploy script - copies dotfiles to ~/.config/
+replace.sh           # Deploy script - copies dotfiles to ~/.config/ and selected webapp desktop files
 restore.sh           # Restore script - recovers from timestamped backups
 ```
 
@@ -58,7 +60,7 @@ restore.sh           # Restore script - recovers from timestamped backups
 
 - **Backup Directory**: Backups are stored in `~/.dotfiles-backups/`
 - **System-Managed Files**: This repository does NOT manage `~/.local/share/omarchy/`, which is system-managed and must remain read-only
-- **Configuration Only**: Only `~/.config/` files are managed by these scripts
+- **Managed Paths**: These scripts manage `~/.config/` and selected `~/.local/share/applications/*.desktop` launchers
 
 ## Requirements
 

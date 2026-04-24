@@ -62,6 +62,14 @@ if [ -d "$CONFIG_DIR/hypr" ]; then
     backup_and_copy "$CONFIG_DIR/hypr/bindings.conf" $DEST_CONFIG_DIR/hypr/bindings.conf
     backup_and_copy "$CONFIG_DIR/hypr/monitors.conf" $DEST_CONFIG_DIR/hypr/monitors.conf
     backup_and_copy "$CONFIG_DIR/hypr/autostart.conf" $DEST_CONFIG_DIR/hypr/autostart.conf
+    if [ -f "$CONFIG_DIR/hypr/close-active-window.sh" ]; then
+        backup_and_copy "$CONFIG_DIR/hypr/close-active-window.sh" $DEST_CONFIG_DIR/hypr/close-active-window.sh
+        chmod +x "$DEST_CONFIG_DIR/hypr/close-active-window.sh"
+    fi
+    if [ -f "$CONFIG_DIR/hypr/force-close-active-window.sh" ]; then
+        backup_and_copy "$CONFIG_DIR/hypr/force-close-active-window.sh" $DEST_CONFIG_DIR/hypr/force-close-active-window.sh
+        chmod +x "$DEST_CONFIG_DIR/hypr/force-close-active-window.sh"
+    fi
     
 fi
 
@@ -79,6 +87,14 @@ if [ -f "$CONFIG_DIR/alacritty/alacritty.toml" ]; then
     echo "🖥️  Alacritty Configuration:"
     mkdir -p $DEST_CONFIG_DIR/alacritty
     backup_and_copy "$CONFIG_DIR/alacritty/alacritty.toml" $DEST_CONFIG_DIR/alacritty/alacritty.toml
+fi
+
+# Copy XDG MIME defaults
+if [ -f "$CONFIG_DIR/mimeapps.list" ]; then
+    echo ""
+    echo "🌐 Default Browser Associations:"
+    mkdir -p "$DEST_CONFIG_DIR"
+    backup_and_copy "$CONFIG_DIR/mimeapps.list" "$DEST_CONFIG_DIR/mimeapps.list"
 fi
 
 # Copy Tmux config
@@ -99,6 +115,27 @@ if [ -f ".tmux.conf" ]; then
         cp "$HOME/.tmux.conf" "$backup_file"
     fi
     cp ".tmux.conf" "$HOME/.tmux.conf"
+fi
+
+# Copy webapp launchers
+if [ -d ".local/share/applications" ]; then
+    echo ""
+    echo "🧩 Webapp Launchers:"
+    mkdir -p "$HOME/.local/share/applications"
+    for desktop_file in .local/share/applications/*.desktop; do
+        if [ -f "$desktop_file" ]; then
+            basename=$(basename "$desktop_file")
+            dest_file="$HOME/.local/share/applications/$basename"
+            if [ -f "$dest_file" ]; then
+                backup_file="$BACKUP_DIR/$TIMESTAMP/.local/share/applications/$basename"
+                mkdir -p "$(dirname "$backup_file")"
+                echo "  📦 Backing up: .local/share/applications/$basename"
+                cp "$dest_file" "$backup_file"
+            fi
+            echo "  ✓ Installing: $dest_file"
+            cp "$desktop_file" "$dest_file"
+        fi
+    done
 fi
 
 echo ""
