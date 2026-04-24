@@ -1,166 +1,89 @@
 #!/bin/bash
 
-# Deploy user dotfiles from this repo to the home directory
-# This script only manages ~/.config/ - it does NOT modify ~/.local/share/omarchy/
-# (which is managed by the system and must remain read-only)
+# Deploy tracked dotfiles from this repository into $HOME.
+# This script only manages files tracked in git under:
+#   - .config/
+#   - .local/share/applications/*.desktop
 
-set -e
+set -euo pipefail
 
-CONFIG_DIR="./.config"
-DEST_CONFIG_DIR="$HOME/.config"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="$HOME/.dotfiles-backups"
-TIMESTAMP=$(date +%s)
+TIMESTAMP="$(date +%s)"
+BACKUP_ROOT="$BACKUP_DIR/$TIMESTAMP"
 
-echo "🔄 Deploying dotfiles from $(pwd)..."
-echo "📦 Backup timestamp: $TIMESTAMP ($(date -d @$TIMESTAMP '+%Y-%m-%d %H:%M:%S'))"
-echo ""
+if ! command -v git >/dev/null 2>&1; then
+    echo "ERROR: git is required to run replace.sh"
+    exit 1
+fi
 
-mkdir -p "$BACKUP_DIR/$TIMESTAMP"
+if ! git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "ERROR: $SCRIPT_DIR is not a git repository"
+    exit 1
+fi
 
-# Function to backup and copy a file
-backup_and_copy() {
-    local src="$1"
-    local dest="$2"
-    
-    if [ -f "$dest" ]; then
-        local relative_path="${dest#$HOME/}"
-        local backup_file="$BACKUP_DIR/$TIMESTAMP/$relative_path"
+echo "Deploying tracked dotfiles from: $SCRIPT_DIR"
+echo "Backup timestamp: $TIMESTAMP ($(date -d "@$TIMESTAMP" '+%Y-%m-%d %H:%M:%S'))"
+echo
+
+mkdir -p "$BACKUP_ROOT"
+
+backup_and_install_file() {
+    local rel_path="$1"
+    local src="$SCRIPT_DIR/$rel_path"
+    local dest="$HOME/$rel_path"
+    local backup_file="$BACKUP_ROOT/$rel_path"
+
+    if [[ -f "$dest" && ! -f "$backup_file" ]]; then
         mkdir -p "$(dirname "$backup_file")"
-        echo "  📦 Backing up: $relative_path"
         cp "$dest" "$backup_file"
+        echo "  backup: $rel_path"
     fi
-    
-    echo "  ✓ Installing: $dest"
-    cp "$src" "$dest"
-}
 
-# Function to backup and copy a directory
-backup_and_copy_dir() {
-    local src="$1"
-    local dest="$2"
-    
-    if [ -d "$dest" ]; then
-        local relative_path="${dest#$HOME/}"
-        local backup_dir="$BACKUP_DIR/$TIMESTAMP/$relative_path"
-        mkdir -p "$backup_dir"
-        echo "  📦 Backing up: $relative_path"
-        cp -r "$dest"/* "$backup_dir/" 2>/dev/null || true
-    fi
-    
-    echo "  ✓ Installing: $dest"
     mkdir -p "$(dirname "$dest")"
-    cp -r "$src" "$dest"
+    cp "$src" "$dest"
+    echo "  install: $rel_path"
+
+    if [[ "$rel_path" == *.sh ]]; then
+        chmod +x "$dest"
+    fi
 }
 
-# Copy Hyprland config
-if [ -d "$CONFIG_DIR/hypr" ]; then
-    echo ""
-    echo "📋 Hyprland Configuration:"
-    mkdir -p $DEST_CONFIG_DIR/hypr
-    backup_and_copy "$CONFIG_DIR/hypr/env.conf" $DEST_CONFIG_DIR/hypr/env.conf
-    backup_and_copy "$CONFIG_DIR/hypr/input.conf" $DEST_CONFIG_DIR/hypr/input.conf
-    backup_and_copy "$CONFIG_DIR/hypr/bindings.conf" $DEST_CONFIG_DIR/hypr/bindings.conf
-    backup_and_copy "$CONFIG_DIR/hypr/monitors.conf" $DEST_CONFIG_DIR/hypr/monitors.conf
-    backup_and_copy "$CONFIG_DIR/hypr/autostart.conf" $DEST_CONFIG_DIR/hypr/autostart.conf
-    if [ -f "$CONFIG_DIR/hypr/close-active-window.sh" ]; then
-        backup_and_copy "$CONFIG_DIR/hypr/close-active-window.sh" $DEST_CONFIG_DIR/hypr/close-active-window.sh
-        chmod +x "$DEST_CONFIG_DIR/hypr/close-active-window.sh"
-    fi
-    if [ -f "$CONFIG_DIR/hypr/force-close-active-window.sh" ]; then
-        backup_and_copy "$CONFIG_DIR/hypr/force-close-active-window.sh" $DEST_CONFIG_DIR/hypr/force-close-active-window.sh
-        chmod +x "$DEST_CONFIG_DIR/hypr/force-close-active-window.sh"
-    fi
-    
-fi
+installed_count=0
+while IFS= read -r rel_path; do
+    [[ -z "$rel_path" ]] && continue
 
-# Copy Git config
-if [ -f "$CONFIG_DIR/git/config" ]; then
-    echo ""
-    echo "🔧 Git Configuration:"
-    mkdir -p $DEST_CONFIG_DIR/git
-    backup_and_copy "$CONFIG_DIR/git/config" $DEST_CONFIG_DIR/git/config
-fi
-
-# Copy Alacritty config
-if [ -f "$CONFIG_DIR/alacritty/alacritty.toml" ]; then
-    echo ""
-    echo "🖥️  Alacritty Configuration:"
-    mkdir -p $DEST_CONFIG_DIR/alacritty
-    backup_and_copy "$CONFIG_DIR/alacritty/alacritty.toml" $DEST_CONFIG_DIR/alacritty/alacritty.toml
-fi
-
-# Copy XDG MIME defaults
-if [ -f "$CONFIG_DIR/mimeapps.list" ]; then
-    echo ""
-    echo "🌐 Default Browser Associations:"
-    mkdir -p "$DEST_CONFIG_DIR"
-    backup_and_copy "$CONFIG_DIR/mimeapps.list" "$DEST_CONFIG_DIR/mimeapps.list"
-fi
-
-# Copy Tmux config
-if [ -f "$CONFIG_DIR/tmux/tmux.conf" ]; then
-    echo ""
-    echo "📋 Tmux Configuration:"
-    mkdir -p $DEST_CONFIG_DIR/tmux
-    backup_and_copy "$CONFIG_DIR/tmux/tmux.conf" $DEST_CONFIG_DIR/tmux/tmux.conf
-fi
-
-# Copy root .tmux.conf
-if [ -f ".tmux.conf" ]; then
-    echo "  ✓ Installing: ~/.tmux.conf"
-    if [ -f "$HOME/.tmux.conf" ]; then
-        backup_file="$BACKUP_DIR/$TIMESTAMP/.tmux.conf"
-        mkdir -p "$(dirname "$backup_file")"
-        echo "  📦 Backing up: .tmux.conf"
-        cp "$HOME/.tmux.conf" "$backup_file"
-    fi
-    cp ".tmux.conf" "$HOME/.tmux.conf"
-fi
-
-# Copy webapp launchers
-if [ -d ".local/share/applications" ]; then
-    echo ""
-    echo "🧩 Webapp Launchers:"
-    mkdir -p "$HOME/.local/share/applications"
-    for desktop_file in .local/share/applications/*.desktop; do
-        if [ -f "$desktop_file" ]; then
-            basename=$(basename "$desktop_file")
-            dest_file="$HOME/.local/share/applications/$basename"
-            if [ -f "$dest_file" ]; then
-                backup_file="$BACKUP_DIR/$TIMESTAMP/.local/share/applications/$basename"
-                mkdir -p "$(dirname "$backup_file")"
-                echo "  📦 Backing up: .local/share/applications/$basename"
-                cp "$dest_file" "$backup_file"
+    case "$rel_path" in
+        .config/*|.local/share/applications/*.desktop)
+            if [[ -f "$SCRIPT_DIR/$rel_path" ]]; then
+                backup_and_install_file "$rel_path"
+                installed_count=$((installed_count + 1))
             fi
-            echo "  ✓ Installing: $dest_file"
-            cp "$desktop_file" "$dest_file"
-        fi
-    done
-fi
+            ;;
+    esac
+done < <(git -C "$SCRIPT_DIR" ls-files)
 
-echo ""
-echo "✅ Dotfiles deployed successfully!"
-if [ "$(ls -A $BACKUP_DIR/$TIMESTAMP 2>/dev/null)" ]; then
-    echo "📦 Backup saved to: $BACKUP_DIR/$TIMESTAMP"
+echo
+echo "Done. Installed $installed_count tracked file(s)."
+if [[ -n "$(find "$BACKUP_ROOT" -type f -print -quit 2>/dev/null)" ]]; then
+    echo "Backup saved to: $BACKUP_ROOT"
 else
-    echo "ℹ️  No backups were created (first deployment)"
+    rmdir "$BACKUP_ROOT" 2>/dev/null || true
+    echo "No previous files needed backup."
 fi
 
-# Reload Hyprland config if available
-if command -v hyprctl &> /dev/null; then
-    echo ""
-    echo "🔄 Reloading Hyprland..."
+if command -v hyprctl >/dev/null 2>&1; then
+    echo
+    echo "Reloading Hyprland..."
     hyprctl reload
-    echo "✓ Hyprland reloaded"
 fi
 
-# Update desktop app database
-if command -v update-desktop-database &> /dev/null; then
-    echo ""
-    echo "🔄 Updating desktop app database..."
+if command -v update-desktop-database >/dev/null 2>&1; then
+    echo
+    echo "Updating desktop app database..."
     mkdir -p "$HOME/.local/share/applications"
     update-desktop-database "$HOME/.local/share/applications"
-    echo "✓ Desktop apps updated"
 fi
 
-echo "💡 Use ./restore.sh to rollback to a previous version"
+echo
+echo "Tip: run ./restore.sh to roll back."

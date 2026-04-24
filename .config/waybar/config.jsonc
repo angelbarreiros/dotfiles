@@ -197,13 +197,16 @@
     "exec": "~/.config/waybar/scripts/notification-count.sh",
     "return-type": "json",
     "format": "{}",
+    "signal": 10,
     "interval": 2,
     "on-click": "/home/demper/.config/waybar/scripts/notification-center-launch.sh",
-    "on-click-right": "~/.config/waybar/scripts/notification-count.sh clear-all",
+    "on-click-middle": "~/.config/waybar/scripts/notification-count.sh clear-all",
+    "on-click-right": "omarchy-toggle-notification-silencing",
     "tooltip": true
   },
   "custom/notification-silencing-indicator": {
     "on-click": "omarchy-toggle-notification-silencing",
+    "on-click-right": "omarchy-toggle-notification-silencing",
     "exec": "$OMARCHY_PATH/default/waybar/indicators/notification-silencing.sh",
     "signal": 10,
     "return-type": "json"

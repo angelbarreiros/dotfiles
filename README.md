@@ -4,7 +4,9 @@ Personal dotfiles repository for Linux desktop configuration, managed through th
 
 ## Overview
 
-This repository contains configuration files for:
+This repository is the source of truth for your tracked dotfiles.
+
+It contains configuration files for:
 - **Hyprland** - A dynamic tiling Wayland compositor
 - **Waybar** - Customizable taskbar/status bar
 - **Terminal emulators** - Alacritty, Kitty, Ghostty
@@ -23,10 +25,10 @@ To deploy these dotfiles to your system:
 ```
 
 This script will:
-- Backup your existing `~/.config/` files to `~/.dotfiles-backups/[timestamp]/`
-- Copy configuration files from this repository to your `~/.config/`
-- Backup and copy selected `~/.local/share/applications/*.desktop` webapp launchers
-- Create timestamped backups for safe restoration
+- Backup any existing destination files to `~/.dotfiles-backups/[timestamp]/`
+- Copy tracked files from this repository into your home directory
+- Deploy tracked files under `.config/`
+- Deploy tracked webapp launchers under `.local/share/applications/*.desktop`
 
 ### Restore Configuration
 
@@ -56,11 +58,17 @@ replace.sh           # Deploy script - copies dotfiles to ~/.config/ and selecte
 restore.sh           # Restore script - recovers from timestamped backups
 ```
 
+## Workflow
+
+1. Edit files in this repository.
+2. Commit changes.
+3. Run `./replace.sh` to apply them to your system.
+
 ## Important Notes
 
 - **Backup Directory**: Backups are stored in `~/.dotfiles-backups/`
 - **System-Managed Files**: This repository does NOT manage `~/.local/share/omarchy/`, which is system-managed and must remain read-only
-- **Managed Paths**: These scripts manage `~/.config/` and selected `~/.local/share/applications/*.desktop` launchers
+- **Managed Files**: `replace.sh` deploys only files tracked in git for `.config/` and `.local/share/applications/*.desktop`
 
 ## Requirements
 

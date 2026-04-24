@@ -16,7 +16,8 @@ get_history_notifications() {
 get_all_notifications() {
     jq -cs 'add | unique_by(.id) | sort_by(.id) | reverse' \
         <(get_active_notifications) \
-        <(get_history_notifications)
+        <(get_history_notifications) \
+    | jq 'map(select(((.app_name // "") | ascii_downcase) != "notify-send"))'
 }
 
 ensure_state() {
@@ -42,6 +43,10 @@ save_state() {
 
 get_seen_ids() {
     get_state | jq '.seen // .restored // []'
+}
+
+is_notifications_muted() {
+    makoctl mode 2>/dev/null | grep -q 'do-not-disturb'
 }
 
 notification_by_id() {
@@ -130,6 +135,48 @@ notification_provider_label() {
     provider_label_from_key "$(notification_provider_key "$notification_json")"
 }
 
+provider_scope_from_key() {
+    local provider_key="$1"
+    local raw lower
+
+    case "$provider_key" in
+        site:web.whatsapp.com)
+            echo "scope:whatsapp"
+            return 0
+            ;;
+        site:gmail.com)
+            echo "scope:gmail"
+            return 0
+            ;;
+        desktop:*|app:*)
+            raw="${provider_key#*:}"
+            lower="${raw,,}"
+
+            case "$lower" in
+                whatsapp|web.whatsapp.com)
+                    echo "scope:whatsapp"
+                    return 0
+                    ;;
+                gmail|mail|google\ mail|mail.google.com|gmail.com)
+                    echo "scope:gmail"
+                    return 0
+                    ;;
+                code|vscode|visual\ studio\ code)
+                    echo "scope:code"
+                    return 0
+                    ;;
+            esac
+
+            echo "scope:generic:$lower"
+            return 0
+            ;;
+        *)
+            echo "scope:key:$provider_key"
+            return 0
+            ;;
+    esac
+}
+
 mark_ids_seen() {
     local ids_json="$1"
     local state updated_state
@@ -144,12 +191,14 @@ mark_ids_seen() {
 
 mark_provider_seen() {
     local provider_key="$1"
-    local unread notifications_to_mark ids_json
+    local unread notifications_to_mark ids_json target_scope
+
+    target_scope=$(provider_scope_from_key "$provider_key")
 
     unread=$(get_unread_notifications)
     notifications_to_mark=$(while IFS= read -r notification_json; do
         [[ -n "$notification_json" ]] || continue
-        if [[ "$(notification_provider_key "$notification_json")" == "$provider_key" ]]; then
+        if [[ "$(provider_scope_from_key "$(notification_provider_key "$notification_json")")" == "$target_scope" ]]; then
             echo "$notification_json"
         fi
     done < <(echo "$unread" | jq -c '.[]'))
@@ -157,6 +206,60 @@ mark_provider_seen() {
     ids_json=$(printf '%s\n' "$notifications_to_mark" | jq -cs 'map(.id)')
     [[ "$ids_json" != "[]" ]] || return 0
     mark_ids_seen "$ids_json"
+}
+
+mark_scope_seen() {
+    local target_scope="$1"
+    local unread notifications_to_mark ids_json
+
+    [[ -n "$target_scope" ]] || return 0
+
+    unread=$(get_unread_notifications)
+    notifications_to_mark=$(while IFS= read -r notification_json; do
+        [[ -n "$notification_json" ]] || continue
+        if [[ "$(provider_scope_from_key "$(notification_provider_key "$notification_json")")" == "$target_scope" ]]; then
+            echo "$notification_json"
+        fi
+    done < <(echo "$unread" | jq -c '.[]'))
+
+    ids_json=$(printf '%s\n' "$notifications_to_mark" | jq -cs 'map(.id)')
+    [[ "$ids_json" != "[]" ]] || return 0
+    mark_ids_seen "$ids_json"
+}
+
+focused_window_scope() {
+    local active_window_json window_class window_class_lc window_title_lc
+
+    active_window_json=$(hyprctl -j activewindow 2>/dev/null || echo '{}')
+    window_class=$(echo "$active_window_json" | jq -r '.class // ""')
+    window_class_lc="${window_class,,}"
+    window_title_lc=$(echo "$active_window_json" | jq -r '.title // ""' | tr '[:upper:]' '[:lower:]')
+
+    if [[ "$window_class" == "chrome-web.whatsapp.com__-Default" || "$window_class_lc" == *"whatsapp"* || "$window_title_lc" == *"whatsapp"* ]]; then
+        echo "scope:whatsapp"
+        return 0
+    fi
+
+    if [[ "$window_class" == "chrome-gmail.com__-Default" || "$window_class_lc" == *"gmail"* || "$window_title_lc" == *"gmail"* || "$window_title_lc" == *"mail.google.com"* ]]; then
+        echo "scope:gmail"
+        return 0
+    fi
+
+    if [[ "$window_class_lc" == "code" || "$window_class_lc" == "vscode" ]]; then
+        echo "scope:code"
+        return 0
+    fi
+
+    [[ -n "$window_class_lc" ]] || return 1
+    echo "scope:generic:$window_class_lc"
+}
+
+mark_focused_app_seen() {
+    local scope
+
+    scope=$(focused_window_scope || true)
+    [[ -n "$scope" ]] || return 0
+    mark_scope_seen "$scope"
 }
 
 focus_window_by_class() {
@@ -281,6 +384,23 @@ render() {
 
     unread=$(get_unread_notifications)
     count=$(echo "$unread" | jq 'length')
+
+    if is_notifications_muted; then
+        if [[ "$count" -gt 0 ]]; then
+            jq -cn \
+                --arg text "" \
+                --arg tooltip "Notifications silenced ($count unread tracked)" \
+                --arg class "muted" \
+                '{"text":$text,"tooltip":$tooltip,"class":$class}'
+        else
+            jq -cn \
+                --arg text "" \
+                --arg tooltip "Notifications silenced" \
+                --arg class "muted" \
+                '{"text":$text,"tooltip":$tooltip,"class":$class}'
+        fi
+        return 0
+    fi
 
     if [[ "$count" -gt 0 ]]; then
         tooltip=$(while IFS= read -r notification_json; do
@@ -477,6 +597,9 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
             ;;
         dump-json)
             dump_json
+            ;;
+        mark-focused-app-seen)
+            mark_focused_app_seen
             ;;
         *)
             render
