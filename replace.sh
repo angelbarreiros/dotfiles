@@ -4,6 +4,7 @@
 # This script only manages files tracked in git under:
 #   - .config/
 #   - .local/share/applications/*.desktop
+#   - .local/share/applications/icons/*
 
 set -euo pipefail
 
@@ -54,7 +55,7 @@ while IFS= read -r rel_path; do
     [[ -z "$rel_path" ]] && continue
 
     case "$rel_path" in
-        .config/*|.local/share/applications/*.desktop)
+        .config/*|.local/share/applications/*.desktop|.local/share/applications/icons/*)
             if [[ -f "$SCRIPT_DIR/$rel_path" ]]; then
                 backup_and_install_file "$rel_path"
                 installed_count=$((installed_count + 1))
