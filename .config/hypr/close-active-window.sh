@@ -4,29 +4,18 @@ set -euo pipefail
 
 active_window_json=$(hyprctl -j activewindow)
 window_class=$(printf '%s' "$active_window_json" | jq -r '.class // ""')
-window_title=$(printf '%s' "$active_window_json" | jq -r '.title // ""')
 window_address=$(printf '%s' "$active_window_json" | jq -r '.address // ""')
 
-# Keep selected webapps alive: hide to scratchpad instead of closing.
-# Chromium webapps have dedicated classes; Firefox webapps reuse class "firefox",
-# so we detect those by title.
-window_title_lc=${window_title,,}
-keep_alive_webapp=0
-
 case "$window_class" in
-    chrome-gmail.com__-Default|chrome-web.whatsapp.com__-Default)
-        keep_alive_webapp=1
+    FFPWA-01KQYXB3Z3YD5GYT1AK67S7Z2D|FFPWA-01KQYXB8RBA9AKZET0AX4MJXBS)
+        if [[ -n "$window_address" ]]; then
+            hyprctl dispatch movetoworkspacesilent "special:scratchpad,address:$window_address" >/dev/null
+        else
+            hyprctl dispatch movetoworkspacesilent "special:scratchpad" >/dev/null
+        fi
+        exit 0
         ;;
 esac
-
-if [[ "$keep_alive_webapp" == "1" ]]; then
-    if [[ -n "$window_address" ]]; then
-        hyprctl dispatch movetoworkspacesilent "special:scratchpad,address:$window_address" >/dev/null
-    else
-        hyprctl dispatch movetoworkspacesilent "special:scratchpad" >/dev/null
-    fi
-    exit 0
-fi
 
 if [[ -n "$window_address" ]]; then
     hyprctl dispatch closewindow "address:$window_address" >/dev/null

@@ -36,8 +36,8 @@ move_class_to_scratchpad() {
     return 1
 }
 
-launch_if_missing "chrome-gmail.com__-Default" 'omarchy-launch-webapp "https://gmail.com"'
-launch_if_missing "chrome-web.whatsapp.com__-Default" 'omarchy-launch-webapp "https://web.whatsapp.com"'
+launch_if_missing "FFPWA-01KQYXB3Z3YD5GYT1AK67S7Z2D" 'uwsm-app -- firefoxpwa site launch 01KQYXB3Z3YD5GYT1AK67S7Z2D'
+launch_if_missing "FFPWA-01KQYXB8RBA9AKZET0AX4MJXBS" 'uwsm-app -- firefoxpwa site launch 01KQYXB8RBA9AKZET0AX4MJXBS'
 
-move_class_to_scratchpad "chrome-gmail.com__-Default" || true
-move_class_to_scratchpad "chrome-web.whatsapp.com__-Default" || true
+move_class_to_scratchpad "FFPWA-01KQYXB3Z3YD5GYT1AK67S7Z2D" || true
+move_class_to_scratchpad "FFPWA-01KQYXB8RBA9AKZET0AX4MJXBS" || true

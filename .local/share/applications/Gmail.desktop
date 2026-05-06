@@ -2,7 +2,7 @@
 Version=1.0
 Name=Gmail
 Comment=Gmail
-Exec=omarchy-launch-webapp "https://gmail.com"
+Exec=uwsm-app -- firefoxpwa site launch 01KQYXB3Z3YD5GYT1AK67S7Z2D
 Terminal=false
 Type=Application
 Icon=/home/demper/.local/share/applications/icons/Gmail.png
