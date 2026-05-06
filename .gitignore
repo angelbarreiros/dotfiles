@@ -38,6 +38,9 @@ desktop.ini
 .tmp/
 tmp/
 
+# Rust build artifacts
+.config/waybar/notification-center-tui/target/
+
 # Sensitive files
 *.private
 .private/
