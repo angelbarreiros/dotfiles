@@ -33,6 +33,7 @@
 #cpu,
 #battery,
 #pulseaudio,
+#custom-monitor-profile,
 #custom-omarchy,
 #custom-update {
     min-width: 12px;
@@ -40,11 +41,17 @@
 }
 
 #tray {
-    margin-right: 16px;
+    padding-right: 6px;
+    margin-right: 0;
 }
 
 #bluetooth {
     margin-right: 17px;
+}
+
+#custom-monitor-profile {
+    margin-left: 0;
+    margin-right: 13px;
 }
 
 #network {
@@ -52,7 +59,8 @@
 }
 
 #custom-expand-icon {
-    margin-right: 18px;
+    padding-right: 6px;
+    margin-right: 0;
 }
 
 tooltip {
@@ -103,4 +111,28 @@ tooltip {
 
 #custom-voxtype.recording {
     color: #a55555;
+}
+
+#custom-pwa-gmail,
+#custom-pwa-whatsapp {
+    min-width: 16px;
+    margin: 0 4px;
+    padding: 0;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 14px 14px;
+}
+
+#custom-pwa-gmail {
+    background-image: url("/home/demper/.local/share/applications/icons/Gmail.png");
+}
+
+#custom-pwa-whatsapp {
+    background-image: url("/home/demper/.local/share/applications/icons/Whatsapp.png");
+    margin-right: 8px;
+}
+
+#custom-pwa-gmail.minimized,
+#custom-pwa-whatsapp.minimized {
+    opacity: 0.55;
 }

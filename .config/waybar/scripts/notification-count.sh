@@ -4,6 +4,10 @@ set -euo pipefail
 
 STATE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/waybar"
 STATE_FILE="$STATE_DIR/mako-unread-state.json"
+GMAIL_PWA_CLASS="FFPWA-01KQYXB3Z3YD5GYT1AK67S7Z2D"
+WHATSAPP_PWA_CLASS="FFPWA-01KQYXB8RBA9AKZET0AX4MJXBS"
+GMAIL_DESKTOP_ENTRY="Gmail"
+WHATSAPP_DESKTOP_ENTRY="Whatsapp"
 
 get_active_notifications() {
     makoctl list -j 2>/dev/null || echo '[]'
@@ -69,13 +73,15 @@ notification_body_text() {
 
 notification_provider_key() {
     local notification_json="$1"
-    local desktop_entry app_name body_host body_text summary_text
+    local desktop_entry app_name body_host body_text summary_text desktop_entry_lc app_name_lc
 
     desktop_entry=$(echo "$notification_json" | jq -r '.desktop_entry // empty')
     app_name=$(echo "$notification_json" | jq -r '.app_name // empty')
     body_host=$(notification_body_host "$notification_json")
     body_text=$(notification_body_text "$notification_json")
     summary_text=$(echo "$notification_json" | jq -r '.summary // ""' | tr '[:upper:]' '[:lower:]')
+    desktop_entry_lc="${desktop_entry,,}"
+    app_name_lc="${app_name,,}"
 
     if [[ "$body_text" == *"web.whatsapp.com"* || "$summary_text" == *"whatsapp"* ]]; then
         echo "site:web.whatsapp.com"
@@ -93,6 +99,28 @@ notification_provider_key() {
             return 0
             ;;
         gmail.com|mail.google.com)
+            echo "site:gmail.com"
+            return 0
+            ;;
+    esac
+
+    case "$desktop_entry_lc" in
+        whatsapp)
+            echo "site:web.whatsapp.com"
+            return 0
+            ;;
+        gmail)
+            echo "site:gmail.com"
+            return 0
+            ;;
+    esac
+
+    case "$app_name_lc" in
+        whatsapp)
+            echo "site:web.whatsapp.com"
+            return 0
+            ;;
+        gmail)
             echo "site:gmail.com"
             return 0
             ;;
@@ -116,6 +144,9 @@ provider_label_from_key() {
             ;;
         site:gmail.com)
             echo "Gmail"
+            ;;
+        desktop:firefox|app:Firefox|app:firefox)
+            echo "Firefox"
             ;;
         desktop:*)
             echo "${provider_key#desktop:}"
@@ -228,19 +259,30 @@ mark_scope_seen() {
 }
 
 focused_window_scope() {
-    local active_window_json window_class window_class_lc window_title_lc
+    local active_window_json window_class window_class_lc window_title_lc window_initial_title_lc
 
     active_window_json=$(hyprctl -j activewindow 2>/dev/null || echo '{}')
     window_class=$(echo "$active_window_json" | jq -r '.class // ""')
     window_class_lc="${window_class,,}"
     window_title_lc=$(echo "$active_window_json" | jq -r '.title // ""' | tr '[:upper:]' '[:lower:]')
+    window_initial_title_lc=$(echo "$active_window_json" | jq -r '.initialTitle // ""' | tr '[:upper:]' '[:lower:]')
 
-    if [[ "$window_class" == "chrome-web.whatsapp.com__-Default" || "$window_class_lc" == *"whatsapp"* || "$window_title_lc" == *"whatsapp"* ]]; then
+    if [[ "$window_title_lc" == *"whatsapp"* || "$window_title_lc" == *"web.whatsapp.com"* || "$window_initial_title_lc" == *"whatsapp"* || "$window_initial_title_lc" == *"web.whatsapp.com"* ]]; then
         echo "scope:whatsapp"
         return 0
     fi
 
-    if [[ "$window_class" == "chrome-gmail.com__-Default" || "$window_class_lc" == *"gmail"* || "$window_title_lc" == *"gmail"* || "$window_title_lc" == *"mail.google.com"* ]]; then
+    if [[ "$window_title_lc" == *"gmail"* || "$window_title_lc" == *"mail.google.com"* || "$window_initial_title_lc" == *"gmail"* || "$window_initial_title_lc" == *"mail.google.com"* ]]; then
+        echo "scope:gmail"
+        return 0
+    fi
+
+    if [[ "$window_class" == "$WHATSAPP_PWA_CLASS" || "$window_class_lc" == *"whatsapp"* ]]; then
+        echo "scope:whatsapp"
+        return 0
+    fi
+
+    if [[ "$window_class" == "$GMAIL_PWA_CLASS" || "$window_class_lc" == *"gmail"* ]]; then
         echo "scope:gmail"
         return 0
     fi
@@ -259,31 +301,89 @@ mark_focused_app_seen() {
 
     scope=$(focused_window_scope || true)
     [[ -n "$scope" ]] || return 0
+
+    # FirefoxPWA currently emits ambiguous browser-owned notifications for
+    # multiple webapps, so focusing Firefox must not clear those unread counts.
+    case "$scope" in
+        scope:generic:firefox|scope:generic:firefoxdeveloperedition|scope:generic:librewolf)
+            return 0
+            ;;
+    esac
+
     mark_scope_seen "$scope"
+}
+
+focus_window_address() {
+    local window_address="$1"
+    local workspace_name special_name
+
+    [[ -n "$window_address" ]] || return 1
+
+    workspace_name=$(hyprctl -j clients 2>/dev/null | jq -r --arg addr "$window_address" '.[] | select(.address == $addr) | .workspace.name')
+
+    if [[ "$workspace_name" == special:* ]]; then
+        special_name="${workspace_name#special:}"
+        hyprctl dispatch togglespecialworkspace "$special_name" >/dev/null 2>&1 || true
+        sleep 0.05
+    elif [[ "$workspace_name" == "special" ]]; then
+        hyprctl dispatch togglespecialworkspace >/dev/null 2>&1 || true
+        sleep 0.05
+    fi
+
+    hyprctl dispatch focuswindow "address:$window_address" >/dev/null 2>&1 || true
+    return 0
 }
 
 focus_window_by_class() {
     local window_class="$1"
-    local window_address workspace_name
+    local window_address
 
-    # Find the window by class using hyprctl
     window_address=$(hyprctl -j clients 2>/dev/null | jq -r --arg class "$window_class" '.[] | select(.class == $class) | .address' | head -n 1)
+    focus_window_address "$window_address"
+}
+
+focus_webapp_window() {
+    local app="$1"
+    local window_address class_name title_pattern other_title_pattern
+
+    case "$app" in
+        gmail)
+            class_name="$GMAIL_PWA_CLASS"
+            title_pattern="gmail|mail\\.google\\.com"
+            other_title_pattern="whatsapp|web\\.whatsapp\\.com"
+            ;;
+        whatsapp)
+            class_name="$WHATSAPP_PWA_CLASS"
+            title_pattern="whatsapp|web\\.whatsapp\\.com"
+            other_title_pattern="gmail|mail\\.google\\.com"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    window_address=$(hyprctl -j clients 2>/dev/null | jq -r --arg title_pattern "$title_pattern" '
+        .[]
+        | select(
+            (((.title // "") | ascii_downcase) | test($title_pattern))
+            or (((.initialTitle // "") | ascii_downcase) | test($title_pattern))
+        )
+        | .address
+    ' | head -n 1)
 
     if [[ -z "$window_address" ]]; then
-        return 1  # Window not found
+        window_address=$(hyprctl -j clients 2>/dev/null | jq -r --arg class "$class_name" --arg other_title_pattern "$other_title_pattern" '
+            .[]
+            | select(.class == $class)
+            | select(
+                ((((.title // "") | ascii_downcase) | test($other_title_pattern)) | not)
+                and ((((.initialTitle // "") | ascii_downcase) | test($other_title_pattern)) | not)
+            )
+            | .address
+        ' | head -n 1)
     fi
 
-    workspace_name=$(hyprctl -j clients 2>/dev/null | jq -r --arg addr "$window_address" '.[] | select(.address == $addr) | .workspace.name')
-
-    # For scratchpad windows, show the special workspace first, then focus
-    if [[ "$workspace_name" == "special:scratchpad" ]]; then
-        hyprctl dispatch togglespecialworkspace scratchpad >/dev/null 2>&1 || true
-        sleep 0.05
-    fi
-
-    # Hyprland focuswindow switches to the correct workspace automatically
-    hyprctl dispatch focuswindow "address:$window_address" >/dev/null 2>&1 || true
-    return 0
+    focus_window_address "$window_address"
 }
 
 open_source_for_notification() {
@@ -297,17 +397,37 @@ open_source_for_notification() {
 
     case "$provider_key" in
         site:web.whatsapp.com)
-            if focus_window_by_class "chrome-web.whatsapp.com__-Default"; then
+            if focus_webapp_window whatsapp; then
                 return 0
             fi
-            uwsm-app -- google-chrome --app="https://web.whatsapp.com/" >/dev/null 2>&1
+            gtk-launch "$WHATSAPP_DESKTOP_ENTRY" >/dev/null 2>&1 || true
             return 0
             ;;
         site:gmail.com)
-            if focus_window_by_class "chrome-gmail.com__-Default"; then
+            if focus_webapp_window gmail; then
                 return 0
             fi
-            uwsm-app -- google-chrome --app="https://mail.google.com/" >/dev/null 2>&1
+            gtk-launch "$GMAIL_DESKTOP_ENTRY" >/dev/null 2>&1 || true
+            return 0
+            ;;
+        desktop:Gmail)
+            if focus_webapp_window gmail; then
+                return 0
+            fi
+            gtk-launch "$GMAIL_DESKTOP_ENTRY" >/dev/null 2>&1 || true
+            return 0
+            ;;
+        desktop:Whatsapp)
+            if focus_webapp_window whatsapp; then
+                return 0
+            fi
+            gtk-launch "$WHATSAPP_DESKTOP_ENTRY" >/dev/null 2>&1 || true
+            return 0
+            ;;
+        desktop:firefox|app:Firefox)
+            if [[ "$is_active" == "true" ]]; then
+                makoctl invoke -n "$notification_id" default >/dev/null 2>&1 || true
+            fi
             return 0
             ;;
         desktop:*)
@@ -578,6 +698,40 @@ dump_json() {
     '
 }
 
+debug_state() {
+    local active history all state unread render_json
+
+    active=$(get_active_notifications)
+    history=$(get_history_notifications)
+    all=$(get_all_notifications)
+    state=$(get_state)
+    unread=$(get_unread_notifications)
+    render_json=$(render)
+
+    jq -cn \
+        --argjson state "$state" \
+        --argjson active "$active" \
+        --argjson history "$history" \
+        --argjson all "$all" \
+        --argjson unread "$unread" \
+        --argjson render "$render_json" \
+        '{
+            state: {
+                baseline: ($state.baseline // 0),
+                seen_count: (($state.seen // $state.restored // []) | length),
+                seen: ($state.seen // $state.restored // [])
+            },
+            counts: {
+                active: ($active | length),
+                history: ($history | length),
+                all: ($all | length),
+                unread: ($unread | length)
+            },
+            unread_ids: ($unread | map(.id)),
+            render: $render
+        }'
+}
+
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     case "${1:-render}" in
         render)
@@ -597,6 +751,9 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
             ;;
         dump-json)
             dump_json
+            ;;
+        debug-state)
+            debug_state
             ;;
         mark-focused-app-seen)
             mark_focused_app_seen

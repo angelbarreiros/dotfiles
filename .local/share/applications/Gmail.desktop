@@ -1,9 +1,12 @@
 [Desktop Entry]
 Version=1.0
 Name=Gmail
-Comment=Gmail
+Comment=Google Mail
 Exec=uwsm-app -- firefoxpwa site launch 01KQYXB3Z3YD5GYT1AK67S7Z2D
 Terminal=false
 Type=Application
 Icon=/home/demper/.local/share/applications/icons/Gmail.png
 StartupNotify=true
+StartupWMClass=FFPWA-01KQYXB3Z3YD5GYT1AK67S7Z2D
+Categories=Network;Email;
+X-GNOME-UsesNotifications=true

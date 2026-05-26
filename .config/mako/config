@@ -1,7 +1,7 @@
 include=~/.local/share/omarchy/default/mako/core.ini
 
 # Always use mako's own timeout; ignore the expire_timeout sent by apps.
-# Without this, Chromium webapps (Gmail, WhatsApp) send expire_timeout=-1
+# Without this, web apps can send expire_timeout=-1
 # which makes notifications stay forever until manually dismissed.
 ignore-timeout=1
 max-visible=3
@@ -9,3 +9,29 @@ max-visible=3
 text-color=#cdd6f4
 border-color=#89b4fa
 background-color=#1e1e2e
+
+# FirefoxPWA notifications can still arrive as Firefox when multiple apps share
+# one profile. These rules relabel popups when Mako can see a site-specific hint.
+[app-name=Firefox body~="(mail\\.google\\.com|gmail\\.com|Gmail|gmail)"]
+format=<b>Gmail</b>\n%s\n%b
+
+[app-name=Firefox summary~="(Gmail|gmail)"]
+format=<b>Gmail</b>\n%s\n%b
+
+[desktop-entry=Firefox body~="(mail\\.google\\.com|gmail\\.com|Gmail|gmail)"]
+format=<b>Gmail</b>\n%s\n%b
+
+[desktop-entry=firefox body~="(mail\\.google\\.com|gmail\\.com|Gmail|gmail)"]
+format=<b>Gmail</b>\n%s\n%b
+
+[app-name=Firefox body~="(web\\.whatsapp\\.com|WhatsApp|Whatsapp|whatsapp)"]
+format=<b>WhatsApp</b>\n%s\n%b
+
+[app-name=Firefox summary~="(WhatsApp|Whatsapp|whatsapp)"]
+format=<b>WhatsApp</b>\n%s\n%b
+
+[desktop-entry=Firefox body~="(web\\.whatsapp\\.com|WhatsApp|Whatsapp|whatsapp)"]
+format=<b>WhatsApp</b>\n%s\n%b
+
+[desktop-entry=firefox body~="(web\\.whatsapp\\.com|WhatsApp|Whatsapp|whatsapp)"]
+format=<b>WhatsApp</b>\n%s\n%b

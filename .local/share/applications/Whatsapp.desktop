@@ -1,9 +1,12 @@
 [Desktop Entry]
 Version=1.0
-Name=Whatsapp
-Comment=Whatsapp
+Name=WhatsApp
+Comment=WhatsApp Web
 Exec=uwsm-app -- firefoxpwa site launch 01KQYXB8RBA9AKZET0AX4MJXBS
 Terminal=false
 Type=Application
 Icon=/home/demper/.local/share/applications/icons/Whatsapp.png
 StartupNotify=true
+StartupWMClass=FFPWA-01KQYXB8RBA9AKZET0AX4MJXBS
+Categories=Network;InstantMessaging;
+X-GNOME-UsesNotifications=true

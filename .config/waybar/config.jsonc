@@ -18,7 +18,10 @@
     "custom/notification-silencing-indicator"
   ],
   "modules-right": [
+    "custom/pwa-gmail",
+    "custom/pwa-whatsapp",
     "group/tray-expander",
+    "custom/monitor-profile",
     "bluetooth",
     "network",
     "pulseaudio",
@@ -145,6 +148,12 @@
     "tooltip-format": "Devices connected: {num_connections}",
     "on-click": "omarchy-launch-bluetooth"
   },
+  "custom/monitor-profile": {
+    "format": "󰍹",
+    "tooltip-format": "Monitor profiles",
+    "on-click": "~/.config/waybar/scripts/monitor-profile-menu.sh",
+    "on-click-right": "~/.config/hypr/scripts/monitor-profile.sh auto"
+  },
   "pulseaudio": {
     "format": "{icon}",
     "on-click": "omarchy-launch-audio",
@@ -223,6 +232,24 @@
     "tooltip": true,
     "on-click-right": "omarchy-voxtype-config",
     "on-click": "omarchy-voxtype-model"
+  },
+  "custom/pwa-gmail": {
+    "exec": "~/.config/waybar/scripts/pwa-tray-icon.sh gmail",
+    "exec-if": "~/.config/waybar/scripts/pwa-tray-icon.sh gmail running",
+    "return-type": "json",
+    "format": "{}",
+    "interval": 2,
+    "on-click": "~/.config/hypr/scripts/launch-or-focus-pwa-gmail.sh",
+    "tooltip": true
+  },
+  "custom/pwa-whatsapp": {
+    "exec": "~/.config/waybar/scripts/pwa-tray-icon.sh whatsapp",
+    "exec-if": "~/.config/waybar/scripts/pwa-tray-icon.sh whatsapp running",
+    "return-type": "json",
+    "format": "{}",
+    "interval": 2,
+    "on-click": "~/.config/hypr/scripts/launch-or-focus-pwa-whatsapp.sh",
+    "tooltip": true
   },
   "tray": {
     "icon-size": 12,

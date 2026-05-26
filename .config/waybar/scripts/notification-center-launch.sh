@@ -5,9 +5,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WINDOW_CLASS="TUI.float"
 WINDOW_TITLE="Notification Center"
+PROJECT_BIN="$SCRIPT_DIR/../notification-center-tui/target/release/omarchy-notification-center"
 APP_BIN="$HOME/.local/bin/omarchy-notification-center"
 
-if [[ -x "$APP_BIN" ]]; then
+if [[ -x "$PROJECT_BIN" ]]; then
+	APP_CMD="$PROJECT_BIN"
+elif [[ -x "$APP_BIN" ]]; then
 	APP_CMD="$APP_BIN"
 else
 	APP_CMD="$SCRIPT_DIR/notification-center.sh"

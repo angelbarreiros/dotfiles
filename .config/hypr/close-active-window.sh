@@ -5,13 +5,21 @@ set -euo pipefail
 active_window_json=$(hyprctl -j activewindow)
 window_class=$(printf '%s' "$active_window_json" | jq -r '.class // ""')
 window_address=$(printf '%s' "$active_window_json" | jq -r '.address // ""')
+window_workspace=$(printf '%s' "$active_window_json" | jq -r '.workspace.name // ""')
 
 case "$window_class" in
-    FFPWA-01KQYXB3Z3YD5GYT1AK67S7Z2D|FFPWA-01KQYXB8RBA9AKZET0AX4MJXBS)
-        if [[ -n "$window_address" ]]; then
-            hyprctl dispatch movetoworkspacesilent "special:scratchpad,address:$window_address" >/dev/null
+    FFPWA-*)
+        if command -v wlrctl >/dev/null 2>&1; then
+            wlrctl window minimize "app_id:${window_class}" state:active >/dev/null 2>&1 && exit 0
+            wlrctl window minimize "app_id:${window_class}" >/dev/null 2>&1 && exit 0
+        fi
+
+        if [[ "$window_workspace" == "special:webapps" ]]; then
+            hyprctl dispatch togglespecialworkspace webapps >/dev/null
+        elif [[ -n "$window_address" ]]; then
+            hyprctl dispatch movetoworkspacesilent "special:webapps,address:$window_address" >/dev/null
         else
-            hyprctl dispatch movetoworkspacesilent "special:scratchpad" >/dev/null
+            hyprctl dispatch movetoworkspacesilent "special:webapps" >/dev/null
         fi
         exit 0
         ;;

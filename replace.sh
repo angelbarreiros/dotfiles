@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Deploy tracked dotfiles from this repository into $HOME.
-# This script only manages files tracked in git under:
+# This script only manages tracked files and untracked, non-ignored files under:
 #   - .config/
 #   - .local/share/applications/*.desktop
 #   - .local/share/applications/icons/*
@@ -62,10 +62,10 @@ while IFS= read -r rel_path; do
             fi
             ;;
     esac
-done < <(git -C "$SCRIPT_DIR" ls-files)
+done < <(git -C "$SCRIPT_DIR" ls-files --cached --others --exclude-standard)
 
 echo
-echo "Done. Installed $installed_count tracked file(s)."
+echo "Done. Installed $installed_count managed file(s)."
 if [[ -n "$(find "$BACKUP_ROOT" -type f -print -quit 2>/dev/null)" ]]; then
     echo "Backup saved to: $BACKUP_ROOT"
 else

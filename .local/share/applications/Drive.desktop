@@ -2,7 +2,7 @@
 Version=1.0
 Name=Drive
 Comment=Drive
-Exec=firefox --new-window https://drive.google.com
+Exec=xdg-open https://drive.google.com
 Terminal=false
 Type=Application
 Icon=/home/demper/.local/share/applications/icons/Drive.png
