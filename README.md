@@ -10,6 +10,7 @@ It contains configuration files for:
 - **Hyprland** - A dynamic tiling Wayland compositor
 - **Waybar** - Customizable taskbar/status bar
 - **Terminal emulators** - Alacritty, Kitty, Ghostty
+- **Zed editor** - Editor settings and keymap
 - **Application bindings** - Keyboard shortcuts and application launchers
 - **Webapp launchers** - Desktop entries for app-mode webapps
 - **System configuration** - Window rules, animations, display settings, and themes
@@ -50,6 +51,7 @@ This script will:
   ├── hypr/          # Hyprland window manager configuration
   ├── waybar/        # Status bar configuration
   ├── alacritty/     # Alacritty terminal configuration
+  ├── zed/           # Zed editor settings and keymap
   ├── tmux/          # Tmux terminal multiplexer configuration
   ├── kitty/         # Kitty terminal configuration
   └── ...            # Other configuration directories

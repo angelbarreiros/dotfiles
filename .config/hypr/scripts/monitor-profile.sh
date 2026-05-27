@@ -102,6 +102,10 @@ target_for_json() {
     '
 }
 
+name_for_json() {
+    jq -r '.name'
+}
+
 logical_height_for_json() {
     jq -r '((.height / .scale) | floor)'
 }
@@ -137,6 +141,33 @@ profile_external_json() {
 keyword_monitor() {
     local rule="$1"
     hyprctl keyword monitor "$rule" >/dev/null
+}
+
+keyword_workspace() {
+    local rule="$1"
+    hyprctl keyword workspace "$rule" >/dev/null || true
+}
+
+move_workspace_to_monitor() {
+    local workspace="$1"
+    local monitor="$2"
+
+    hyprctl dispatch moveworkspacetomonitor "$workspace $monitor" >/dev/null || true
+}
+
+pin_workspace_to_monitor() {
+    local workspace="$1"
+    local monitor="$2"
+
+    keyword_workspace "$workspace,monitor:$monitor,default:true"
+    move_workspace_to_monitor "$workspace" "$monitor"
+}
+
+pin_single_external_workspaces() {
+    local external_name="$1"
+
+    pin_workspace_to_monitor 1 "$INTERNAL_MONITOR"
+    pin_workspace_to_monitor 2 "$external_name"
 }
 
 notify_profile() {
@@ -180,26 +211,30 @@ apply_work() {
 }
 
 apply_home() {
-    local external_json external_target external_height
+    local external_json external_name external_target external_height
 
     external_json="$(profile_external_json "$HOME_DESC")"
+    external_name="$(printf '%s\n' "$external_json" | name_for_json)"
     external_target="$(printf '%s\n' "$external_json" | target_for_json)"
     external_height="$(printf '%s\n' "$external_json" | logical_height_for_json)"
 
     keyword_monitor "$external_target,preferred,0x0,1"
     keyword_monitor "$INTERNAL_MONITOR,preferred,0x${external_height},$LAPTOP_SCALE"
+    pin_single_external_workspaces "$external_name"
     notify_profile "Home"
     echo "Applied home profile"
 }
 
 apply_travel() {
-    local external_json external_target
+    local external_json external_name external_target
 
     external_json="$(profile_external_json "$TRAVEL_DESC")"
+    external_name="$(printf '%s\n' "$external_json" | name_for_json)"
     external_target="$(printf '%s\n' "$external_json" | target_for_json)"
 
     keyword_monitor "$INTERNAL_MONITOR,preferred,0x0,$LAPTOP_SCALE"
     keyword_monitor "$external_target,preferred,${LAPTOP_LOGICAL_WIDTH}x0,1"
+    pin_single_external_workspaces "$external_name"
     notify_profile "Travel"
     echo "Applied travel profile"
 }
