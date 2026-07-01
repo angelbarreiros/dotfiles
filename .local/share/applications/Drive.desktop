@@ -1,9 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Name=Drive
-Comment=Drive
-Exec=xdg-open https://drive.google.com
-Terminal=false
-Type=Application
-Icon=/home/demper/.local/share/applications/icons/Drive.png
-StartupNotify=true

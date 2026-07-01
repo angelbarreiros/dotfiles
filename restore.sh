@@ -5,7 +5,7 @@
 # It does NOT modify ~/.local/share/omarchy/
 # (which is managed by the system and must remain read-only)
 
-set -e
+set -euo pipefail
 
 BACKUP_DIR="$HOME/.dotfiles-backups"
 
@@ -99,4 +99,12 @@ if command -v hyprctl &> /dev/null; then
     echo "🔄 Reloading Hyprland..."
     hyprctl reload
     echo "✓ Hyprland reloaded"
+fi
+
+if command -v update-desktop-database &> /dev/null; then
+    echo ""
+    echo "🔄 Updating desktop app database..."
+    mkdir -p "$HOME/.local/share/applications"
+    update-desktop-database "$HOME/.local/share/applications"
+    echo "✓ Desktop apps updated"
 fi

@@ -12,6 +12,10 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="$HOME/.dotfiles-backups"
 TIMESTAMP="$(date +%s)"
 BACKUP_ROOT="$BACKUP_DIR/$TIMESTAMP"
+REMOVED_MANAGED_FILES=(
+    ".local/share/applications/Drive.desktop"
+    ".local/share/applications/icons/Drive.png"
+)
 
 if ! command -v git >/dev/null 2>&1; then
     echo "ERROR: git is required to run replace.sh"
@@ -50,6 +54,26 @@ backup_and_install_file() {
     fi
 }
 
+backup_and_remove_file() {
+    local rel_path="$1"
+    local dest="$HOME/$rel_path"
+    local backup_file="$BACKUP_ROOT/$rel_path"
+
+    if [[ ! -e "$dest" ]]; then
+        return 1
+    fi
+
+    if [[ -f "$dest" && ! -f "$backup_file" ]]; then
+        mkdir -p "$(dirname "$backup_file")"
+        cp "$dest" "$backup_file"
+        echo "  backup: $rel_path"
+    fi
+
+    rm -f "$dest"
+    echo "  remove: $rel_path"
+    return 0
+}
+
 installed_count=0
 while IFS= read -r rel_path; do
     [[ -z "$rel_path" ]] && continue
@@ -64,8 +88,16 @@ while IFS= read -r rel_path; do
     esac
 done < <(git -C "$SCRIPT_DIR" ls-files --cached --others --exclude-standard)
 
+removed_count=0
+for rel_path in "${REMOVED_MANAGED_FILES[@]}"; do
+    if backup_and_remove_file "$rel_path"; then
+        removed_count=$((removed_count + 1))
+    fi
+done
+
 echo
 echo "Done. Installed $installed_count managed file(s)."
+echo "Removed $removed_count retired managed file(s)."
 if [[ -n "$(find "$BACKUP_ROOT" -type f -print -quit 2>/dev/null)" ]]; then
     echo "Backup saved to: $BACKUP_ROOT"
 else
