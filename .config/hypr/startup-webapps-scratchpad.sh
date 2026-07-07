@@ -4,12 +4,16 @@ set -euo pipefail
 
 LOG_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/hypr"
 LOG_FILE="$LOG_DIR/startup-webapps-minimized.log"
+LOCK_FILE="${XDG_RUNTIME_DIR:-/run/user/$UID}/startup-webapps-scratchpad.lock"
 
-GMAIL_CLASS="FFPWA-01KQYXB3Z3YD5GYT1AK67S7Z2D"
-WHATSAPP_CLASS="FFPWA-01KQYXB8RBA9AKZET0AX4MJXBS"
+GMAIL_CLASS="ChromiumPWA-Gmail"
+WHATSAPP_CLASS="ChromiumPWA-WhatsApp"
 
 mkdir -p "$LOG_DIR"
 : > "$LOG_FILE"
+
+exec 9>"$LOCK_FILE"
+flock -n 9 || exit 0
 
 log() {
     printf '[%(%F %T)T] %s\n' -1 "$*" >> "$LOG_FILE"
@@ -26,8 +30,9 @@ app_addresses() {
     case "$app" in
         gmail)
             addresses=$(clients_json | jq -r '
-                .[]
-                | select(
+	                .[]
+	                | select((((.class // "") | startswith("FFPWA-")) | not))
+	                | select(
                     (((.title // "") | ascii_downcase) | test("gmail|mail\\.google\\.com"))
                     or (((.initialTitle // "") | ascii_downcase) | test("gmail|mail\\.google\\.com"))
                 )
@@ -51,8 +56,9 @@ app_addresses() {
             ;;
         whatsapp)
             addresses=$(clients_json | jq -r '
-                .[]
-                | select(
+	                .[]
+	                | select((((.class // "") | startswith("FFPWA-")) | not))
+	                | select(
                     (((.title // "") | ascii_downcase) | test("whatsapp|web\\.whatsapp\\.com"))
                     or (((.initialTitle // "") | ascii_downcase) | test("whatsapp|web\\.whatsapp\\.com"))
                 )
@@ -121,12 +127,23 @@ launch_app_if_missing() {
 
     if app_is_running "$app"; then
         log "$app already running"
-        return 0
+        return 1
     fi
 
     log "launching $app with gtk-launch $desktop_entry"
     gtk-launch "$desktop_entry" >/dev/null 2>&1 &
     wait_for_app "$app" || true
+    return 0
+}
+
+keep_app_running() {
+    local app="$1"
+    local desktop_entry="$2"
+
+    if launch_app_if_missing "$app" "$desktop_entry"; then
+        sleep 0.5
+        minimize_app "$app" || true
+    fi
 }
 
 minimize_app() {
@@ -157,12 +174,18 @@ minimize_app() {
 }
 
 main() {
-    launch_app_if_missing gmail Gmail
+    keep_app_running gmail Gmail
     sleep 1
-    launch_app_if_missing whatsapp Whatsapp
+    keep_app_running whatsapp Whatsapp
 
     minimize_app gmail || true
     minimize_app whatsapp || true
+
+    while true; do
+        sleep 10
+        keep_app_running gmail Gmail
+        keep_app_running whatsapp Whatsapp
+    done
 }
 
 main "$@"

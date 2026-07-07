@@ -1,18 +1,21 @@
 #!/bin/bash
 
-# Focus the Gmail PWA if it's open, otherwise launch it via PWAsForFirefox.
+# Focus the Gmail Chromium app window if it is open, otherwise launch it.
 
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+APP_NAME="Gmail"
+APP_URL="https://mail.google.com/mail/u/0/"
+PROFILE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/chromium-pwas/gmail"
 
-ULID="$("$SCRIPT_DIR/firefoxpwa-get-ulid.sh" "Gmail")"
-if [[ $? -ne 0 || -z "$ULID" ]]; then
-    notify-send -u critical "Gmail PWA" "Gmail is not installed via PWAsForFirefox. Install it first with the Firefox extension."
-    exit 1
-fi
-
-CLASS="FFPWA-${ULID}"
-
-WINDOW_ADDRESS=$(hyprctl clients -j | jq -r --arg c "$CLASS" '.[] | select(.class == $c) | .address' | head -1)
+WINDOW_ADDRESS=$(hyprctl clients -j | jq -r '
+    .[]
+    | select((((.class // "") | startswith("FFPWA-")) | not))
+    | select(
+        ((((.class // "") | ascii_downcase) | test("chrome-mail\\.google\\.com|chromiumpwa-gmail|chromium-pwa-gmail"))
+        or (((.title // "") | ascii_downcase) | test("gmail|mail\\.google\\.com|correo de"))
+        or (((.initialTitle // "") | ascii_downcase) | test("gmail|mail\\.google\\.com")))
+    )
+    | .address
+' | head -1)
 
 if [[ -n "$WINDOW_ADDRESS" ]]; then
     if command -v wlrctl >/dev/null 2>&1; then
@@ -29,5 +32,13 @@ if [[ -n "$WINDOW_ADDRESS" ]]; then
     fi
     hyprctl dispatch focuswindow "address:${WINDOW_ADDRESS}"
 else
-    exec setsid uwsm-app -- firefoxpwa site launch "$ULID"
+    mkdir -p "$PROFILE_DIR"
+    exec setsid uwsm-app -- chromium \
+        --app="$APP_URL" \
+        --name="$APP_NAME" \
+        --user-data-dir="$PROFILE_DIR" \
+        --no-first-run \
+        --no-default-browser-check \
+        --disable-background-mode \
+        --ozone-platform=wayland
 fi

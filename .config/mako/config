@@ -5,33 +5,26 @@ include=~/.local/share/omarchy/default/mako/core.ini
 # which makes notifications stay forever until manually dismissed.
 ignore-timeout=1
 max-visible=3
+height=180
 
 text-color=#cdd6f4
 border-color=#89b4fa
 background-color=#1e1e2e
 
-# FirefoxPWA notifications can still arrive as Firefox when multiple apps share
-# one profile. These rules relabel popups when Mako can see a site-specific hint.
-[app-name=Firefox body~="(mail\\.google\\.com|gmail\\.com|Gmail|gmail)"]
-format=<b>Gmail</b>\n%s\n%b
+[app-name=Chromium body~="(mail\\.google\\.com|gmail\\.com|Gmail|gmail)"]
+format=<b>%s</b>\n%b
 
-[app-name=Firefox summary~="(Gmail|gmail)"]
-format=<b>Gmail</b>\n%s\n%b
+[app-name=Chromium summary~="(Gmail|gmail)"]
+format=<b>%s</b>\n%b
 
-[desktop-entry=Firefox body~="(mail\\.google\\.com|gmail\\.com|Gmail|gmail)"]
-format=<b>Gmail</b>\n%s\n%b
+[desktop-entry=chromium body~="(mail\\.google\\.com|gmail\\.com|Gmail|gmail)"]
+format=<b>%s</b>\n%b
 
-[desktop-entry=firefox body~="(mail\\.google\\.com|gmail\\.com|Gmail|gmail)"]
-format=<b>Gmail</b>\n%s\n%b
+[app-name=Chromium body~="(web\\.whatsapp\\.com|WhatsApp|Whatsapp|whatsapp)"]
+format=<b>%s</b>\n%b
 
-[app-name=Firefox body~="(web\\.whatsapp\\.com|WhatsApp|Whatsapp|whatsapp)"]
-format=<b>WhatsApp</b>\n%s\n%b
+[app-name=Chromium summary~="(WhatsApp|Whatsapp|whatsapp)"]
+format=<b>%s</b>\n%b
 
-[app-name=Firefox summary~="(WhatsApp|Whatsapp|whatsapp)"]
-format=<b>WhatsApp</b>\n%s\n%b
-
-[desktop-entry=Firefox body~="(web\\.whatsapp\\.com|WhatsApp|Whatsapp|whatsapp)"]
-format=<b>WhatsApp</b>\n%s\n%b
-
-[desktop-entry=firefox body~="(web\\.whatsapp\\.com|WhatsApp|Whatsapp|whatsapp)"]
-format=<b>WhatsApp</b>\n%s\n%b
+[desktop-entry=chromium body~="(web\\.whatsapp\\.com|WhatsApp|Whatsapp|whatsapp)"]
+format=<b>%s</b>\n%b

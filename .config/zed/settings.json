@@ -60,7 +60,7 @@
     }
   },
 
-  "cli_default_open_behavior": "existing_window",
+  "cli_default_open_behavior": "new_window",
   "git_panel": {
     "dock": "left"
   },

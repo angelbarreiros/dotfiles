@@ -4,10 +4,12 @@ set -euo pipefail
 
 STATE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/waybar"
 STATE_FILE="$STATE_DIR/mako-unread-state.json"
-GMAIL_PWA_CLASS="FFPWA-01KQYXB3Z3YD5GYT1AK67S7Z2D"
-WHATSAPP_PWA_CLASS="FFPWA-01KQYXB8RBA9AKZET0AX4MJXBS"
+GMAIL_PWA_CLASS="ChromiumPWA-Gmail"
+WHATSAPP_PWA_CLASS="ChromiumPWA-WhatsApp"
 GMAIL_DESKTOP_ENTRY="Gmail"
 WHATSAPP_DESKTOP_ENTRY="Whatsapp"
+GMAIL_LAUNCHER="$HOME/.config/hypr/scripts/launch-or-focus-pwa-gmail.sh"
+WHATSAPP_LAUNCHER="$HOME/.config/hypr/scripts/launch-or-focus-pwa-whatsapp.sh"
 
 get_active_notifications() {
     makoctl list -j 2>/dev/null || echo '[]'
@@ -71,6 +73,22 @@ notification_body_text() {
     echo "$notification_json" | jq -r '.body // ""' | tr '[:upper:]' '[:lower:]'
 }
 
+notification_message_body() {
+    local notification_json="$1"
+
+    echo "$notification_json" | jq -r '
+        def trim: gsub("^[[:space:]]+|[[:space:]]+$"; "");
+        def browser_origin: test("^(https?://)?(web[.]whatsapp[.]com|mail[.]google[.]com|gmail[.]com)/?$"; "i");
+
+        (.body // "")
+        | split("\n")
+        | map(trim)
+        | map(select(. != ""))
+        | if (length > 0 and (.[0] | browser_origin)) then .[1:] else . end
+        | join(" ")
+    ' | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//'
+}
+
 notification_provider_key() {
     local notification_json="$1"
     local desktop_entry app_name body_host body_text summary_text desktop_entry_lc app_name_lc
@@ -105,22 +123,22 @@ notification_provider_key() {
     esac
 
     case "$desktop_entry_lc" in
-        whatsapp)
+        whatsapp|chromiumpwa-whatsapp|chromium-pwa-whatsapp)
             echo "site:web.whatsapp.com"
             return 0
             ;;
-        gmail)
+        gmail|chromiumpwa-gmail|chromium-pwa-gmail)
             echo "site:gmail.com"
             return 0
             ;;
     esac
 
     case "$app_name_lc" in
-        whatsapp)
+        whatsapp|chromiumpwa-whatsapp|chromium-pwa-whatsapp)
             echo "site:web.whatsapp.com"
             return 0
             ;;
-        gmail)
+        gmail|google\ mail|chromiumpwa-gmail|chromium-pwa-gmail)
             echo "site:gmail.com"
             return 0
             ;;
@@ -147,6 +165,9 @@ provider_label_from_key() {
             ;;
         desktop:firefox|app:Firefox|app:firefox)
             echo "Firefox"
+            ;;
+        desktop:chromium|app:Chromium|app:chromium)
+            echo "Chromium"
             ;;
         desktop:*)
             echo "${provider_key#desktop:}"
@@ -302,14 +323,6 @@ mark_focused_app_seen() {
     scope=$(focused_window_scope || true)
     [[ -n "$scope" ]] || return 0
 
-    # FirefoxPWA currently emits ambiguous browser-owned notifications for
-    # multiple webapps, so focusing Firefox must not clear those unread counts.
-    case "$scope" in
-        scope:generic:firefox|scope:generic:firefoxdeveloperedition|scope:generic:librewolf)
-            return 0
-            ;;
-    esac
-
     mark_scope_seen "$scope"
 }
 
@@ -364,6 +377,7 @@ focus_webapp_window() {
 
     window_address=$(hyprctl -j clients 2>/dev/null | jq -r --arg title_pattern "$title_pattern" '
         .[]
+        | select((((.class // "") | startswith("FFPWA-")) | not))
         | select(
             (((.title // "") | ascii_downcase) | test($title_pattern))
             or (((.initialTitle // "") | ascii_downcase) | test($title_pattern))
@@ -386,6 +400,35 @@ focus_webapp_window() {
     focus_window_address "$window_address"
 }
 
+launch_or_focus_webapp() {
+    local app="$1"
+    local launcher desktop_entry
+
+    case "$app" in
+        gmail)
+            launcher="$GMAIL_LAUNCHER"
+            desktop_entry="$GMAIL_DESKTOP_ENTRY"
+            ;;
+        whatsapp)
+            launcher="$WHATSAPP_LAUNCHER"
+            desktop_entry="$WHATSAPP_DESKTOP_ENTRY"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    if focus_webapp_window "$app"; then
+        return 0
+    fi
+
+    if [[ -x "$launcher" ]]; then
+        "$launcher" >/dev/null 2>&1 &
+    else
+        gtk-launch "$desktop_entry" >/dev/null 2>&1 || true
+    fi
+}
+
 open_source_for_notification() {
     local notification_json="$1"
     local notification_id provider_key desktop_entry is_active
@@ -397,34 +440,22 @@ open_source_for_notification() {
 
     case "$provider_key" in
         site:web.whatsapp.com)
-            if focus_webapp_window whatsapp; then
-                return 0
-            fi
-            gtk-launch "$WHATSAPP_DESKTOP_ENTRY" >/dev/null 2>&1 || true
+            launch_or_focus_webapp whatsapp
             return 0
             ;;
         site:gmail.com)
-            if focus_webapp_window gmail; then
-                return 0
-            fi
-            gtk-launch "$GMAIL_DESKTOP_ENTRY" >/dev/null 2>&1 || true
+            launch_or_focus_webapp gmail
             return 0
             ;;
         desktop:Gmail)
-            if focus_webapp_window gmail; then
-                return 0
-            fi
-            gtk-launch "$GMAIL_DESKTOP_ENTRY" >/dev/null 2>&1 || true
+            launch_or_focus_webapp gmail
             return 0
             ;;
         desktop:Whatsapp)
-            if focus_webapp_window whatsapp; then
-                return 0
-            fi
-            gtk-launch "$WHATSAPP_DESKTOP_ENTRY" >/dev/null 2>&1 || true
+            launch_or_focus_webapp whatsapp
             return 0
             ;;
-        desktop:firefox|app:Firefox)
+        desktop:chromium|app:Chromium)
             if [[ "$is_active" == "true" ]]; then
                 makoctl invoke -n "$notification_id" default >/dev/null 2>&1 || true
             fi
@@ -474,10 +505,14 @@ notification_preview_line() {
     local summary preview body
 
     summary=$(echo "$notification_json" | jq -r '.summary // "(no title)"')
-    body=$(echo "$notification_json" | jq -r '.body // ""' | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')
+    body=$(notification_message_body "$notification_json")
 
     if [[ -n "$body" ]]; then
-        preview="$summary | $body"
+        if [[ "$summary" =~ ^([Ww]hats[Aa]pp|[Gg]mail|[Cc]hromium)?[[:space:]]*[Nn]otification$ ]]; then
+            preview="$body"
+        else
+            preview="$body | $summary"
+        fi
     else
         preview="$summary"
     fi

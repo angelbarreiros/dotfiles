@@ -13,6 +13,7 @@ BACKUP_DIR="$HOME/.dotfiles-backups"
 TIMESTAMP="$(date +%s)"
 BACKUP_ROOT="$BACKUP_DIR/$TIMESTAMP"
 REMOVED_MANAGED_FILES=(
+    ".config/hypr/scripts/firefoxpwa-get-ulid.sh"
     ".local/share/applications/Drive.desktop"
     ".local/share/applications/icons/Drive.png"
 )
