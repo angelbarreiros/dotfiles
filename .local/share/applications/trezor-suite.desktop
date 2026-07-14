@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=Trezor Suite
+Comment=Trezor Suite desktop application
+Exec=/home/demper/Apps/Trezor-Suite.AppImage --no-sandbox %U
+Icon=/home/demper/.local/share/applications/icons/Trezor-Suite.png
+Terminal=false
+Type=Application
+StartupNotify=true
+StartupWMClass=Trezor Suite
+Categories=Utility;
+MimeType=x-scheme-handler/trezorsuite;x-scheme-handler/bitcoin;x-scheme-handler/litecoin;x-scheme-handler/bitcoincash;x-scheme-handler/bitcoingold;x-scheme-handler/dash;x-scheme-handler/digibyte;x-scheme-handler/dogecoin;x-scheme-handler/namecoin;x-scheme-handler/vertcoin;x-scheme-handler/zcash;
+X-AppImage-Version=26.6.1

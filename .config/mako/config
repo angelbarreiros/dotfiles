@@ -5,7 +5,7 @@ include=~/.local/share/omarchy/default/mako/core.ini
 # which makes notifications stay forever until manually dismissed.
 ignore-timeout=1
 max-visible=3
-height=180
+height=104
 
 text-color=#cdd6f4
 border-color=#89b4fa

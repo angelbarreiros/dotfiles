@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# AbiWord exports selections as complete HTML documents. Some web editors
+# incorrectly paste the document's fallback <title> ("Abiword HTML Document")
+# as visible text. This launcher removes AbiWord's HTML clipboard targets so
+# receiving applications use its normal UTF-8 plain-text target instead.
+
+set -u
+
+SOURCE="$HOME/.config/abiword/clipboard-no-html.c"
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/abiword-no-html-clipboard"
+LIBRARY="$CACHE_DIR/clipboard-no-html.so"
+ABIWORD_FONTCONFIG="$HOME/.config/abiword/fonts.conf"
+
+mkdir -p "$CACHE_DIR"
+
+if [[ ! -r "$LIBRARY" || "$SOURCE" -nt "$LIBRARY" ]]; then
+    TEMP_LIBRARY="$LIBRARY.tmp.$$"
+
+    if cc -shared -fPIC -O2 "$SOURCE" -ldl -o "$TEMP_LIBRARY"; then
+        mv "$TEMP_LIBRARY" "$LIBRARY"
+    else
+        rm -f "$TEMP_LIBRARY"
+        exec /usr/bin/abiword "$@"
+    fi
+fi
+
+if [[ -r "$ABIWORD_FONTCONFIG" ]]; then
+    export FONTCONFIG_FILE="$ABIWORD_FONTCONFIG"
+fi
+
+export LD_PRELOAD="$LIBRARY${LD_PRELOAD:+:$LD_PRELOAD}"
+exec /usr/bin/abiword "$@"

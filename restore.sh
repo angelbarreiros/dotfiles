@@ -8,6 +8,24 @@
 set -euo pipefail
 
 BACKUP_DIR="$HOME/.dotfiles-backups"
+RETIRED_MANAGED_PATHS=(
+    ".config/tmux"
+    ".local/share/applications/orca.desktop"
+    "Apps/orca-linux.AppImage"
+    "Apps/Images/orca-ide.png"
+)
+
+is_retired_managed_path() {
+    local rel_path="${1#/}"
+
+    for retired_path in "${RETIRED_MANAGED_PATHS[@]}"; do
+        if [[ "$rel_path" == "$retired_path" || "$rel_path" == "$retired_path/"* ]]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
 
 if [ ! -d "$BACKUP_DIR" ]; then
     echo "❌ No backups directory found at $BACKUP_DIR"
@@ -52,7 +70,15 @@ date_str=$(date -d @$selected_timestamp '+%Y-%m-%d %H:%M:%S')
 echo ""
 echo "Restoring backup from: $date_str"
 echo "Files to restore:"
-find "$selected_backup" -type f | sed 's|'"$selected_backup"'||g' | sed 's|^|  - |'
+while IFS= read -r backup_file; do
+    original_file="${backup_file#$selected_backup/}"
+
+    if is_retired_managed_path "$original_file"; then
+        continue
+    fi
+
+    echo "  - /$original_file"
+done < <(find "$selected_backup" -type f)
 echo ""
 
 read -p "Are you sure? (y/N): " confirm
@@ -69,11 +95,16 @@ mkdir -p "$BACKUP_DIR/$current_timestamp"
 
 # Backup current files
 while IFS= read -r backup_file; do
-    original_file="${backup_file#$selected_backup}"
-    original_full_path="$HOME$original_file"
+    original_file="${backup_file#$selected_backup/}"
+
+    if is_retired_managed_path "$original_file"; then
+        continue
+    fi
+
+    original_full_path="$HOME/$original_file"
     
     if [ -f "$original_full_path" ] || [ -d "$original_full_path" ]; then
-        current_backup_file="$BACKUP_DIR/$current_timestamp$original_file"
+        current_backup_file="$BACKUP_DIR/$current_timestamp/$original_file"
         mkdir -p "$(dirname "$current_backup_file")"
         cp -r "$original_full_path" "$current_backup_file"
     fi
@@ -82,12 +113,23 @@ done < <(find "$selected_backup" -type f)
 # Restore files from selected backup
 echo "  ✓ Restoring files..."
 while IFS= read -r backup_file; do
-    original_file="${backup_file#$selected_backup}"
-    original_full_path="$HOME$original_file"
+    original_file="${backup_file#$selected_backup/}"
+
+    if is_retired_managed_path "$original_file"; then
+        continue
+    fi
+
+    original_full_path="$HOME/$original_file"
     
     mkdir -p "$(dirname "$original_full_path")"
     cp "$backup_file" "$original_full_path"
 done < <(find "$selected_backup" -type f)
+
+for retired_path in "${RETIRED_MANAGED_PATHS[@]}"; do
+    if [[ -e "$HOME/$retired_path" ]]; then
+        rm -rf "$HOME/$retired_path"
+    fi
+done
 
 echo ""
 echo "✅ Restore completed!"

@@ -30,6 +30,8 @@ This script will:
 - Copy tracked files from this repository into your home directory
 - Deploy tracked files under `.config/`
 - Deploy tracked webapp launchers under `.local/share/applications/*.desktop`
+- Install the pinned Trezor Suite AppImage under `~/Apps` after SHA-512 verification
+- Remove retired Orca launcher, AppImage, and icon files
 
 ### Restore Configuration
 
@@ -52,7 +54,6 @@ This script will:
   ├── waybar/        # Status bar configuration
   ├── alacritty/     # Alacritty terminal configuration
   ├── zed/           # Zed editor settings and keymap
-  ├── tmux/          # Tmux terminal multiplexer configuration
   ├── kitty/         # Kitty terminal configuration
   └── ...            # Other configuration directories
 

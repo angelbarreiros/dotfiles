@@ -1,0 +1,29 @@
+[ui]
+agent_panel_sort = "spaces"
+prompt_new_tab_name = false
+
+[terminal]
+new_cwd = "follow"
+
+[keys]
+new_tab = ["prefix+c", "ctrl+enter"]
+close_tab = ["prefix+shift+x", "ctrl+alt+enter"]
+new_workspace = ""
+close_workspace = ["prefix+shift+d", "ctrl+alt+shift+enter"]
+previous_tab = ["prefix+p", "ctrl+left"]
+next_tab = ["prefix+n", "ctrl+right"]
+
+previous_workspace = "ctrl+up"
+next_workspace = "ctrl+down"
+
+[[keys.command]]
+key = "prefix+shift+n"
+type = "shell"
+command = "herdr workspace create --cwd \"$HOME\" --focus >/dev/null"
+description = "new space in home"
+
+[[keys.command]]
+key = "ctrl+shift+enter"
+type = "shell"
+command = "herdr workspace create --cwd \"$HOME\" --focus >/dev/null"
+description = "new space in home"

@@ -49,15 +49,3 @@ if [[ -n "$window_address" ]]; then
 else
     hyprctl dispatch killactive >/dev/null
 fi
-
-if [[ "$window_class" == "Alacritty" ]]; then
-    tmux list-sessions -F '#{session_name}\t#{session_attached}' 2>/dev/null | while IFS=$'\t' read -r session_name attached_count; do
-        [[ -z "$session_name" ]] && continue
-        [[ "$attached_count" != "0" ]] && continue
-        tmux kill-session -t "$session_name" 2>/dev/null || true
-    done
-
-    if ! tmux list-clients >/dev/null 2>&1; then
-        tmux kill-server 2>/dev/null || true
-    fi
-fi
