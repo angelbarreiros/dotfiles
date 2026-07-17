@@ -112,6 +112,7 @@ done < <(find "$selected_backup" -type f)
 
 # Restore files from selected backup
 echo "  ✓ Restoring files..."
+waybar_restored=0
 while IFS= read -r backup_file; do
     original_file="${backup_file#$selected_backup/}"
 
@@ -123,6 +124,10 @@ while IFS= read -r backup_file; do
     
     mkdir -p "$(dirname "$original_full_path")"
     cp "$backup_file" "$original_full_path"
+
+    if [[ "$original_file" == .config/waybar/* ]]; then
+        waybar_restored=1
+    fi
 done < <(find "$selected_backup" -type f)
 
 for retired_path in "${RETIRED_MANAGED_PATHS[@]}"; do
@@ -141,6 +146,13 @@ if command -v hyprctl &> /dev/null; then
     echo "🔄 Reloading Hyprland..."
     hyprctl reload
     echo "✓ Hyprland reloaded"
+fi
+
+if ((waybar_restored)) && command -v omarchy >/dev/null 2>&1; then
+    echo ""
+    echo "🔄 Restarting Waybar..."
+    omarchy restart waybar
+    echo "✓ Waybar restarted"
 fi
 
 if command -v update-desktop-database &> /dev/null; then

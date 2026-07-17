@@ -159,6 +159,7 @@ install_trezor_suite() {
 }
 
 installed_count=0
+waybar_installed=0
 while IFS= read -r rel_path; do
     [[ -z "$rel_path" ]] && continue
 
@@ -167,6 +168,10 @@ while IFS= read -r rel_path; do
             if [[ -f "$SCRIPT_DIR/$rel_path" ]]; then
                 backup_and_install_file "$rel_path"
                 installed_count=$((installed_count + 1))
+
+                if [[ "$rel_path" == .config/waybar/* ]]; then
+                    waybar_installed=1
+                fi
             fi
             ;;
     esac
@@ -202,6 +207,12 @@ if command -v hyprctl >/dev/null 2>&1; then
     echo
     echo "Reloading Hyprland..."
     hyprctl reload
+fi
+
+if ((waybar_installed)) && command -v omarchy >/dev/null 2>&1; then
+    echo
+    echo "Restarting Waybar..."
+    omarchy restart waybar
 fi
 
 if command -v update-desktop-database >/dev/null 2>&1; then

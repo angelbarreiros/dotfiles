@@ -185,9 +185,13 @@ apply_laptop() {
 }
 
 apply_work() {
-    local left_json right_json left_target right_target
+    local left_json right_json left_name right_name left_target right_target
 
     if connected_desc "$WORK_LEFT_DESC" && connected_desc "$WORK_RIGHT_DESC"; then
+        left_json="$(external_json_by_desc "$WORK_LEFT_DESC")"
+        right_json="$(external_json_by_desc "$WORK_RIGHT_DESC")"
+        left_name="$(printf '%s\n' "$left_json" | name_for_json)"
+        right_name="$(printf '%s\n' "$right_json" | name_for_json)"
         left_target="desc:$WORK_LEFT_DESC"
         right_target="desc:$WORK_RIGHT_DESC"
     else
@@ -199,6 +203,8 @@ apply_work() {
             return 1
         }
 
+        left_name="$(printf '%s\n' "$left_json" | name_for_json)"
+        right_name="$(printf '%s\n' "$right_json" | name_for_json)"
         left_target="$(printf '%s\n' "$left_json" | target_for_json)"
         right_target="$(printf '%s\n' "$right_json" | target_for_json)"
     fi
@@ -206,6 +212,9 @@ apply_work() {
     keyword_monitor "$left_target,preferred,1440x0,1,vrr,1"
     keyword_monitor "$right_target,preferred,3360x0,1,vrr,1"
     keyword_monitor "$INTERNAL_MONITOR,preferred,1440x1080,$LAPTOP_SCALE"
+    pin_workspace_to_monitor 1 "$INTERNAL_MONITOR"
+    pin_workspace_to_monitor 2 "$left_name"
+    pin_workspace_to_monitor 3 "$right_name"
     notify_profile "Work"
     echo "Applied work profile"
 }
