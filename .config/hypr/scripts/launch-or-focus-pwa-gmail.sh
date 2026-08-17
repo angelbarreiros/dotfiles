@@ -24,13 +24,13 @@ if [[ -n "$WINDOW_ADDRESS" ]]; then
 
     WORKSPACE_NAME=$(hyprctl clients -j | jq -r --arg addr "$WINDOW_ADDRESS" '.[] | select(.address == $addr) | .workspace.name')
     if [[ "$WORKSPACE_NAME" == special:* ]]; then
-        hyprctl dispatch togglespecialworkspace "${WORKSPACE_NAME#special:}" >/dev/null 2>&1 || true
+        hyprctl dispatch "hl.dsp.workspace.toggle_special(\"${WORKSPACE_NAME#special:}\")" >/dev/null 2>&1 || true
         sleep 0.05
     elif [[ "$WORKSPACE_NAME" == "special" ]]; then
-        hyprctl dispatch togglespecialworkspace >/dev/null 2>&1 || true
+        hyprctl dispatch 'hl.dsp.workspace.toggle_special("special")' >/dev/null 2>&1 || true
         sleep 0.05
     fi
-    hyprctl dispatch focuswindow "address:${WINDOW_ADDRESS}"
+    hyprctl dispatch "hl.dsp.focus({ window = \"address:${WINDOW_ADDRESS}\" })"
 else
     mkdir -p "$PROFILE_DIR"
     exec setsid uwsm-app -- chromium \

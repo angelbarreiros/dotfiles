@@ -3,6 +3,27 @@
 set -euo pipefail
 
 active_window_json=$(hyprctl -j activewindow)
+
+# The Omarchy 4 menu is a Quickshell layer, so ask the menu plugin directly
+# whether it is open before falling back to Hyprland's layer list.
+menu_state=$(omarchy-shell shell call omarchy.menu state "{}" 2>/dev/null || true)
+if [[ "$menu_state" == "open" ]]; then
+    omarchy-menu close >/dev/null 2>&1 || true
+    exit 0
+fi
+
+# Omarchy 4's menu is a layer surface rather than a normal Hyprland window.
+# Close it explicitly when SUPER+W is pressed, otherwise continue with the
+# normal active-window/webapp behavior below.
+if hyprctl -j layers 2>/dev/null | jq -e '
+    .. | objects
+    | select(.namespace? == "omarchy-menu")
+    | select((.mapped? // false) == true or (.visible? // false) == true)
+' >/dev/null 2>&1; then
+    omarchy-menu close >/dev/null 2>&1 || true
+    exit 0
+fi
+
 window_class=$(printf '%s' "$active_window_json" | jq -r '.class // ""')
 window_address=$(printf '%s' "$active_window_json" | jq -r '.address // ""')
 window_workspace=$(printf '%s' "$active_window_json" | jq -r '.workspace.name // ""')
@@ -35,17 +56,11 @@ if [[ "$is_webapp" == true ]]; then
     fi
 
     if [[ "$window_workspace" == "special:webapps" ]]; then
-        hyprctl dispatch togglespecialworkspace webapps >/dev/null
-    elif [[ -n "$window_address" ]]; then
-        hyprctl dispatch movetoworkspacesilent "special:webapps,address:$window_address" >/dev/null
+        hyprctl dispatch 'hl.dsp.workspace.toggle_special("webapps")' >/dev/null
     else
-        hyprctl dispatch movetoworkspacesilent "special:webapps" >/dev/null
+        hyprctl dispatch 'hl.dsp.window.move({ workspace = "special:webapps", follow = false })' >/dev/null
     fi
     exit 0
 fi
 
-if [[ -n "$window_address" ]]; then
-    hyprctl dispatch closewindow "address:$window_address" >/dev/null
-else
-    hyprctl dispatch killactive >/dev/null
-fi
+hyprctl dispatch 'hl.dsp.window.close()' >/dev/null

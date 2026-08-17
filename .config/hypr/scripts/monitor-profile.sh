@@ -34,6 +34,7 @@ Commands:
   home           Apply one external above the laptop
   travel         Apply one external to the right of the laptop
   laptop         Apply laptop-only layout
+  active         Print the currently active layout profile
   learn home     Save the currently connected external as the home monitor
   learn travel   Save the currently connected external as the travel monitor
   status         Show connected monitors and learned profiles
@@ -62,6 +63,29 @@ monitor_signature() {
 external_count() {
     jq -r --arg internal "$INTERNAL_MONITOR" '
         [.[] | select(.disabled == false and .name != $internal)] | length
+    '
+}
+
+active_profile() {
+    json_monitors | jq -r --arg internal "$INTERNAL_MONITOR" --argjson laptop_width "$LAPTOP_LOGICAL_WIDTH" '
+        [ .[] | select(.disabled == false) ] as $enabled
+        | ($enabled | map(select(.name != $internal))) as $external
+        | ($enabled | map(select(.name == $internal)) | first) as $laptop
+        | if $laptop == null then
+            "unknown"
+          elif ($external | length) == 0 then
+            "laptop"
+          elif ($external | length) >= 2 then
+            "work"
+          elif ($external[0].x == 0 and $external[0].y == 0
+                and ($laptop.y // 0) > 0) then
+            "home"
+          elif ($laptop.x == 0 and $laptop.y == 0
+                and $external[0].x == $laptop_width and $external[0].y == 0) then
+            "travel"
+          else
+            "unknown"
+          end
     '
 }
 
@@ -375,6 +399,7 @@ main() {
             learn_profile "$2"
             ;;
         status) show_status ;;
+        active) active_profile ;;
         -h|--help|help) usage ;;
         *)
             usage >&2

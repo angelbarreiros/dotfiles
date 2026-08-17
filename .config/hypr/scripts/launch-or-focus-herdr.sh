@@ -33,7 +33,7 @@ if [[ -z "$address" ]]; then
 fi
 
 if [[ -n "$address" ]]; then
-  exec hyprctl dispatch focuswindow "address:$address"
+  exec hyprctl dispatch "hl.dsp.focus({ window = \"address:$address\" })"
 fi
 
 cwd="$(omarchy-cmd-terminal-cwd 2>/dev/null || pwd)"

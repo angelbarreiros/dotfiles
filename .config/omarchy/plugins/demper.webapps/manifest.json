@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "demper.webapps",
+  "name": "Webapps",
+  "version": "1.0.0",
+  "author": "Demper",
+  "description": "Gmail and WhatsApp indicators for the Omarchy bar",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Webapps",
+    "description": "Shows open Gmail and WhatsApp webapps",
+    "category": "Applications",
+    "allowMultiple": false
+  }
+}
