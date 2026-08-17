@@ -824,6 +824,12 @@ BarWidget {
     required property var modelData
     property var registeredBar: null
     property var trayBar: root.bar
+    // Bar click targets are shared across all slots and monitors. Restrict
+    // this target to the item currently under the pointer so it cannot steal
+    // clicks from adjacent Gmail/WhatsApp widgets.
+    readonly property bool pressable: mouseArea.containsMouse
+    readonly property bool interactive: true
+    readonly property bool concealed: false
 
     visible: modelData.status !== Status.Passive
     implicitWidth: visible ? root.trayItemExtent : 0
