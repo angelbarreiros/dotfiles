@@ -1,0 +1,8 @@
+[Unit]
+Description=Watch the Omarchy stay-awake flag
+
+[Path]
+PathExists=%h/.local/state/omarchy/indicators/stay-awake
+
+[Install]
+WantedBy=default.target

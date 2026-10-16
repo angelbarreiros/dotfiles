@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "demper.workspaces",
+  "name": "Totoro Workspaces",
+  "version": "1.0.0",
+  "author": "demper",
+  "description": "Workspace indicators with a blue selected workspace",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Workspaces.qml"
+  },
+  "barWidget": {
+    "displayName": "Totoro Workspaces",
+    "description": "Workspace indicators with a blue selected workspace",
+    "category": "Compositor",
+    "allowMultiple": false
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.workspaces"
+  }
+}

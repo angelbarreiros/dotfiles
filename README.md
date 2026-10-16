@@ -30,6 +30,9 @@ This script will:
 - Copy tracked files from this repository into your home directory
 - Deploy tracked files under `.config/`
 - Deploy tracked webapp launchers under `.local/share/applications/*.desktop`
+- Install the TUXEDO touchpad libinput override under `/etc/libinput/` (sudo may prompt)
+- Reset the touchpad automatically when that system rule changes so libinput loads it immediately
+- Configure automatic suspend-then-hibernate: hibernate after 5 minutes suspended and start the cycle after 5 minutes idle
 - Install the pinned Trezor Suite AppImage under `~/Apps` after SHA-512 verification
 - Remove retired Orca launcher, AppImage, and icon files
 
@@ -57,6 +60,10 @@ This script will:
   ├── kitty/         # Kitty terminal configuration
   └── ...            # Other configuration directories
 
+system/
+  ├── libinput/      # Hardware-specific system input overrides
+  └── systemd/       # Power-management drop-ins
+
 replace.sh           # Deploy script - copies dotfiles to ~/.config/ and selected webapp desktop files
 restore.sh           # Restore script - recovers from timestamped backups
 ```
@@ -72,6 +79,7 @@ restore.sh           # Restore script - recovers from timestamped backups
 - **Backup Directory**: Backups are stored in `~/.dotfiles-backups/`
 - **System-Managed Files**: This repository does NOT manage `~/.local/share/omarchy/`, which is system-managed and must remain read-only
 - **Managed Files**: `replace.sh` deploys only files tracked in git for `.config/` and `.local/share/applications/*.desktop`
+- **System Input Override**: `replace.sh` separately installs tracked files under `system/` to their declared `/etc/` destinations
 
 ## Requirements
 

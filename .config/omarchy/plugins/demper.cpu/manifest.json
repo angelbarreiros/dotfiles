@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "demper.cpu",
+  "name": "CPU Monitor",
+  "version": "1.0.0",
+  "author": "Demper",
+  "description": "CPU, per-core, memory, temperature, and frequency telemetry",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "CPU Monitor",
+    "description": "Live CPU, memory, temperature, and per-core details",
+    "category": "System",
+    "allowMultiple": false
+  }
+}

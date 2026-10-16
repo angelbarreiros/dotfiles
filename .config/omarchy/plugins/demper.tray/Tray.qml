@@ -834,12 +834,22 @@ BarWidget {
     visible: modelData.status !== Status.Passive
     implicitWidth: visible ? root.trayItemExtent : 0
     implicitHeight: visible ? root.trayItemExtent : 0
+    // Keep every delegate at a stable cell size while live tray data changes.
+    // This prevents Row/Column positioners from briefly stacking zero-width
+    // or zero-height delegates on top of each other.
+    width: implicitWidth
+    height: implicitHeight
 
     function syncClickRegistration() {
       if (registeredBar && registeredBar.unregisterClickTarget)
         registeredBar.unregisterClickTarget(trayItemRoot)
       registeredBar = trayBar
-      if (registeredBar && registeredBar.registerClickTarget)
+      // KeyboardPanel forwards bar clicks through the shared target list, but
+      // its forwarding path does not check `pressable`. While another bar
+      // panel is open, a tray target can therefore claim a click that is
+      // visually on an adjacent webapp button. Let the panel dismiss normally
+      // instead; direct clicks still use the slot's normal hit testing.
+      if (registeredBar && !registeredBar.activePopout && registeredBar.registerClickTarget)
         registeredBar.registerClickTarget(trayItemRoot)
     }
 
@@ -856,6 +866,10 @@ BarWidget {
 
     onTrayBarChanged: syncClickRegistration()
     Component.onCompleted: syncClickRegistration()
+    Connections {
+      target: trayItemRoot.trayBar
+      function onActivePopoutChanged() { trayItemRoot.syncClickRegistration() }
+    }
     Component.onDestruction: {
       if (registeredBar && registeredBar.unregisterClickTarget)
         registeredBar.unregisterClickTarget(trayItemRoot)

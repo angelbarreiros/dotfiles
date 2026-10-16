@@ -18,17 +18,35 @@ WINDOW_ADDRESS=$(hyprctl clients -j | jq -r '
 ' | head -1)
 
 if [[ -n "$WINDOW_ADDRESS" ]]; then
-    if command -v wlrctl >/dev/null 2>&1; then
-        wlrctl window focus "app_id:${CLASS}" >/dev/null 2>&1 && exit 0
-    fi
-
     WORKSPACE_NAME=$(hyprctl clients -j | jq -r --arg addr "$WINDOW_ADDRESS" '.[] | select(.address == $addr) | .workspace.name')
     if [[ "$WORKSPACE_NAME" == special:* ]]; then
-        hyprctl dispatch "hl.dsp.workspace.toggle_special(\"${WORKSPACE_NAME#special:}\")" >/dev/null 2>&1 || true
-        sleep 0.05
+        ACTIVE_WINDOW_ADDRESS=$(hyprctl activewindow -j 2>/dev/null | jq -r '.address // ""')
+        ACTIVE_WORKSPACE_NAME=$(hyprctl activewindow -j 2>/dev/null | jq -r '.workspace.name // ""')
+
+        # The bar button is a toggle: close the special workspace when this
+        # webapp is already the active window instead of focusing it again.
+        if [[ "$ACTIVE_WINDOW_ADDRESS" == "$WINDOW_ADDRESS" \
+            && "$ACTIVE_WORKSPACE_NAME" == "$WORKSPACE_NAME" ]]; then
+            hyprctl dispatch "hl.dsp.workspace.toggle_special(\"${WORKSPACE_NAME#special:}\")" >/dev/null 2>&1 || true
+            exit 0
+        fi
+
+        if [[ "$ACTIVE_WORKSPACE_NAME" != "$WORKSPACE_NAME" ]]; then
+            hyprctl dispatch "hl.dsp.workspace.toggle_special(\"${WORKSPACE_NAME#special:}\")" >/dev/null 2>&1 || true
+            sleep 0.05
+        fi
     elif [[ "$WORKSPACE_NAME" == "special" ]]; then
-        hyprctl dispatch 'hl.dsp.workspace.toggle_special("special")' >/dev/null 2>&1 || true
-        sleep 0.05
+        ACTIVE_WINDOW_ADDRESS=$(hyprctl activewindow -j 2>/dev/null | jq -r '.address // ""')
+        ACTIVE_WORKSPACE_NAME=$(hyprctl activewindow -j 2>/dev/null | jq -r '.workspace.name // ""')
+        if [[ "$ACTIVE_WINDOW_ADDRESS" == "$WINDOW_ADDRESS" \
+            && "$ACTIVE_WORKSPACE_NAME" == "$WORKSPACE_NAME" ]]; then
+            hyprctl dispatch 'hl.dsp.workspace.toggle_special("special")' >/dev/null 2>&1 || true
+            exit 0
+        fi
+        if [[ "$ACTIVE_WORKSPACE_NAME" != "$WORKSPACE_NAME" ]]; then
+            hyprctl dispatch 'hl.dsp.workspace.toggle_special("special")' >/dev/null 2>&1 || true
+            sleep 0.05
+        fi
     fi
     hyprctl dispatch "hl.dsp.focus({ window = \"address:${WINDOW_ADDRESS}\" })"
 else

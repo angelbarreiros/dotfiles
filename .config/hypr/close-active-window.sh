@@ -55,10 +55,10 @@ if [[ "$is_webapp" == true ]]; then
         wlrctl window minimize "app_id:${window_class}" >/dev/null 2>&1 && exit 0
     fi
 
-    if [[ "$window_workspace" == "special:webapps" ]]; then
-        hyprctl dispatch 'hl.dsp.workspace.toggle_special("webapps")' >/dev/null
+    if [[ "$window_workspace" == "special:scratchpad" ]]; then
+        hyprctl dispatch 'hl.dsp.workspace.toggle_special("scratchpad")' >/dev/null
     else
-        hyprctl dispatch 'hl.dsp.window.move({ workspace = "special:webapps", follow = false })' >/dev/null
+        hyprctl dispatch 'hl.dsp.window.move({ workspace = "special:scratchpad", follow = false })' >/dev/null
     fi
     exit 0
 fi

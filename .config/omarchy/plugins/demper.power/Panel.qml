@@ -67,7 +67,10 @@ Panel {
   }
   readonly property bool discharging: {
     var device = UPower.displayDevice
-    return !!(device && device.isPresent && UPower.onBattery)
+    // UPower.onBattery is derived from every line-power device. Some USB-C
+    // controllers can leave a phantom source marked online, so trust the
+    // battery's own state for the direction of energy flow.
+    return !!(device && device.isPresent && device.state === UPowerDeviceState.Discharging)
   }
   readonly property bool chargeThresholdActive: {
     var device = UPower.displayDevice
@@ -84,7 +87,7 @@ Panel {
 
   readonly property bool charging: {
     var d = UPower.displayDevice
-    return d && d.isPresent && !UPower.onBattery && !root.batteryFlowIdle
+    return d && d.isPresent && d.state === UPowerDeviceState.Charging && !root.batteryFlowIdle
   }
 
   readonly property color batteryFillColor: {

@@ -8,4 +8,7 @@ if pgrep -f '/opt/[t]uxedo-control-center/[t]uxedo-control-center($| --tray)' >/
     exit 0
 fi
 
-exec uwsm-app -- /opt/tuxedo-control-center/tuxedo-control-center --tray
+# TUXEDO's Electron tray process must stay attached to the graphical session.
+# Launching it through uwsm-app makes it exit shortly after startup on this
+# system, before it can remain registered with StatusNotifierWatcher.
+exec /opt/tuxedo-control-center/tuxedo-control-center --tray

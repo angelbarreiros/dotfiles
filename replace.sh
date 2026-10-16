@@ -29,6 +29,11 @@ REMOVED_MANAGED_FILES=(
 REMOVED_MANAGED_PATHS=(
     ".config/tmux"
 )
+SYSTEM_FILE_SPECS=(
+    "system/libinput/90-tuxedo-infinitybook-pixart-touchpad.quirks:/etc/libinput/90-tuxedo-infinitybook-pixart-touchpad.quirks"
+    "system/systemd/sleep.conf.d/90-demper-power.conf:/etc/systemd/sleep.conf.d/90-demper-power.conf"
+    "system/systemd/logind.conf.d/90-demper-power.conf:/etc/systemd/logind.conf.d/90-demper-power.conf"
+)
 
 if ! command -v git >/dev/null 2>&1; then
     echo "ERROR: git is required to run replace.sh"
@@ -45,6 +50,42 @@ echo "Backup timestamp: $TIMESTAMP ($(date -d "@$TIMESTAMP" '+%Y-%m-%d %H:%M:%S'
 echo
 
 mkdir -p "$BACKUP_ROOT"
+
+install_system_file() {
+    local spec="$1"
+    local rel_path="${spec%%:*}"
+    local dest="${spec#*:}"
+    local src="$SCRIPT_DIR/$rel_path"
+
+    if [[ ! -f "$src" ]]; then
+        echo "ERROR: missing system file source: $src"
+        exit 1
+    fi
+
+    if [[ -f "$dest" ]] && cmp -s "$src" "$dest"; then
+        echo "  verified: $dest"
+        return 0
+    fi
+
+    echo "  install: $dest"
+    sudo install -D -m 0644 "$src" "$dest"
+    case "$dest" in
+        /etc/libinput/*)
+            system_rule_changed=1
+            ;;
+        /etc/systemd/*)
+            system_power_changed=1
+            ;;
+    esac
+}
+
+system_rule_changed=0
+system_power_changed=0
+system_installed_count=0
+for system_file_spec in "${SYSTEM_FILE_SPECS[@]}"; do
+    install_system_file "$system_file_spec"
+    system_installed_count=$((system_installed_count + 1))
+done
 
 backup_and_install_file() {
     local rel_path="$1"
@@ -194,7 +235,7 @@ for rel_path in "${REMOVED_MANAGED_PATHS[@]}"; do
 done
 
 echo
-echo "Done. Installed $installed_count managed file(s)."
+echo "Done. Installed $installed_count managed file(s) and checked $system_installed_count system file(s)."
 echo "Removed $removed_count retired managed file(s)."
 if [[ -n "$(find "$BACKUP_ROOT" -type f -print -quit 2>/dev/null)" ]]; then
     echo "Backup saved to: $BACKUP_ROOT"
@@ -209,10 +250,30 @@ if command -v hyprctl >/dev/null 2>&1; then
     hyprctl reload
 fi
 
+if ((system_rule_changed)) && command -v omarchy >/dev/null 2>&1; then
+    echo
+    echo "Resetting the trackpad so libinput loads the system rule..."
+    omarchy restart trackpad
+fi
+
+if ((system_power_changed)); then
+    echo
+    echo "Reloading systemd power-management configuration..."
+    sudo systemctl daemon-reload
+    sudo systemctl reload systemd-logind
+fi
+
 if ((waybar_installed)) && command -v omarchy >/dev/null 2>&1; then
     echo
     echo "Restarting Waybar..."
     omarchy restart waybar
+fi
+
+if command -v systemctl >/dev/null 2>&1; then
+    echo
+    echo "Enabling stay-awake systemd inhibitor..."
+    systemctl --user daemon-reload
+    systemctl --user enable --now stay-awake-inhibit.path stay-awake-mute-pwas.service || true
 fi
 
 if command -v update-desktop-database >/dev/null 2>&1; then

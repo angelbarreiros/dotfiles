@@ -13,7 +13,7 @@ INTERNAL_MONITOR="eDP-1"
 LAPTOP_LOGICAL_WIDTH=1440
 LAPTOP_LOGICAL_HEIGHT=900
 LAPTOP_SCALE=2
-WORK_LEFT_DESC=""
+WORK_ABOVE_DESC=""
 WORK_RIGHT_DESC=""
 HOME_DESC=""
 TRAVEL_DESC=""
@@ -30,7 +30,7 @@ Usage: $(basename "$0") COMMAND
 Commands:
   auto           Detect and apply the best monitor profile
   daemon         Watch monitor changes and run auto when needed
-  work           Apply laptop + two externals above/right
+  work           Apply laptop + one external above and one to the right
   home           Apply one external above the laptop
   travel         Apply one external to the right of the laptop
   laptop         Apply laptop-only layout
@@ -54,7 +54,7 @@ json_monitors() {
 
 monitor_signature() {
     json_monitors | jq -r --arg internal "$INTERNAL_MONITOR" '
-        [.[] | select(.disabled == false) | "\(.name)|\(.description)|\(.width)x\(.height)@\(.refreshRate)|scale=\(.scale)"]
+        [.[] | select(.disabled == false) | "\(.name)|\(.description)|\(.width)x\(.height)@\(.refreshRate)|scale=\(.scale)|position=\(.x)x\(.y)"]
         | sort
         | join("\n")
     '
@@ -134,6 +134,22 @@ logical_height_for_json() {
     jq -r '((.height / .scale) | floor)'
 }
 
+logical_width_for_scale_json() {
+    local scale="$1"
+
+    jq -r --argjson scale "$scale" '((.width / $scale) | floor)'
+}
+
+logical_height_for_scale_json() {
+    local scale="$1"
+
+    jq -r --argjson scale "$scale" '((.height / $scale) | floor)'
+}
+
+mode_for_json() {
+    jq -r '"\(.width)x\(.height)@\(.refreshRate)"' | sed -E 's/\.?0+$//'
+}
+
 first_external_json() {
     local json
 
@@ -162,29 +178,46 @@ profile_external_json() {
     printf '%s\n' "$json"
 }
 
-keyword_monitor() {
-    local rule="$1"
-    hyprctl keyword monitor "$rule" >/dev/null
+apply_monitor() {
+    local output="$1"
+    local mode="$2"
+    local position="$3"
+    local scale="$4"
+
+    # Omarchy 4 uses the Lua parser; the legacy `hyprctl keyword monitor`
+    # command is rejected and silently leaves the old position in place.
+    hyprctl eval "hl.monitor({ output = \"$output\", mode = \"$mode\", position = \"$position\", scale = $scale })" >/dev/null
 }
 
-keyword_workspace() {
-    local rule="$1"
-    hyprctl keyword workspace "$rule" >/dev/null || true
+focus_workspace() {
+    local workspace="$1"
+
+    hyprctl dispatch "hl.dsp.focus({ workspace = \"$workspace\" })" >/dev/null || true
 }
 
-move_workspace_to_monitor() {
+set_workspace_rule() {
     local workspace="$1"
     local monitor="$2"
 
-    hyprctl dispatch moveworkspacetomonitor "$workspace $monitor" >/dev/null || true
+    # Keep the assignment declarative so a monitor wake/reload does not leave
+    # the workspace on whichever monitor Hyprland chose temporarily.
+    hyprctl eval "hl.workspace_rule({ workspace = \"$workspace\", monitor = \"$monitor\", default = true })" >/dev/null || true
+}
+
+move_current_workspace_to_monitor() {
+    local monitor="$1"
+
+    hyprctl dispatch "hl.dsp.workspace.move({ monitor = \"$monitor\" })" >/dev/null || true
 }
 
 pin_workspace_to_monitor() {
     local workspace="$1"
     local monitor="$2"
 
-    keyword_workspace "$workspace,monitor:$monitor,default:true"
-    move_workspace_to_monitor "$workspace" "$monitor"
+    set_workspace_rule "$workspace" "$monitor"
+    focus_workspace "$workspace"
+    sleep 0.05
+    move_current_workspace_to_monitor "$monitor"
 }
 
 pin_single_external_workspaces() {
@@ -192,6 +225,7 @@ pin_single_external_workspaces() {
 
     pin_workspace_to_monitor 1 "$INTERNAL_MONITOR"
     pin_workspace_to_monitor 2 "$external_name"
+    focus_workspace 1
 }
 
 notify_profile() {
@@ -203,70 +237,95 @@ notify_profile() {
 }
 
 apply_laptop() {
-    keyword_monitor "$INTERNAL_MONITOR,preferred,0x0,$LAPTOP_SCALE"
+    local laptop_json laptop_mode
+
+    laptop_json="$(json_monitors | jq -c --arg internal "$INTERNAL_MONITOR" '.[] | select(.disabled == false and .name == $internal)')"
+    laptop_mode="$(printf '%s\n' "$laptop_json" | mode_for_json)"
+    apply_monitor "$INTERNAL_MONITOR" "$laptop_mode" "0x0" "$LAPTOP_SCALE"
     notify_profile "Laptop"
     echo "Applied laptop profile"
 }
 
 apply_work() {
-    local left_json right_json left_name right_name left_target right_target
+    local above_json right_json above_name right_name
+    local laptop_json above_width above_height laptop_x laptop_y
+    local above_mode right_mode laptop_mode above_scale right_scale laptop_scale
 
-    if connected_desc "$WORK_LEFT_DESC" && connected_desc "$WORK_RIGHT_DESC"; then
-        left_json="$(external_json_by_desc "$WORK_LEFT_DESC")"
+    if connected_desc "$WORK_ABOVE_DESC" && connected_desc "$WORK_RIGHT_DESC"; then
+        above_json="$(external_json_by_desc "$WORK_ABOVE_DESC")"
         right_json="$(external_json_by_desc "$WORK_RIGHT_DESC")"
-        left_name="$(printf '%s\n' "$left_json" | name_for_json)"
+        above_name="$(printf '%s\n' "$above_json" | name_for_json)"
         right_name="$(printf '%s\n' "$right_json" | name_for_json)"
-        left_target="desc:$WORK_LEFT_DESC"
-        right_target="desc:$WORK_RIGHT_DESC"
     else
-        left_json="$(external_json_by_index 0)"
+        above_json="$(external_json_by_index 0)"
         right_json="$(external_json_by_index 1)"
 
-        [[ "$left_json" != "null" && "$right_json" != "null" ]] || {
+        [[ "$above_json" != "null" && "$right_json" != "null" ]] || {
             echo "ERROR: work profile needs two external monitors" >&2
             return 1
         }
 
-        left_name="$(printf '%s\n' "$left_json" | name_for_json)"
+        above_name="$(printf '%s\n' "$above_json" | name_for_json)"
         right_name="$(printf '%s\n' "$right_json" | name_for_json)"
-        left_target="$(printf '%s\n' "$left_json" | target_for_json)"
-        right_target="$(printf '%s\n' "$right_json" | target_for_json)"
     fi
 
-    keyword_monitor "$left_target,preferred,1440x0,1,vrr,1"
-    keyword_monitor "$right_target,preferred,3360x0,1,vrr,1"
-    keyword_monitor "$INTERNAL_MONITOR,preferred,1440x1080,$LAPTOP_SCALE"
+    laptop_json="$(json_monitors | jq -c --arg internal "$INTERNAL_MONITOR" '.[] | select(.disabled == false and .name == $internal)')"
+    above_mode="$(printf '%s\n' "$above_json" | mode_for_json)"
+    right_mode="$(printf '%s\n' "$right_json" | mode_for_json)"
+    laptop_mode="$(printf '%s\n' "$laptop_json" | mode_for_json)"
+    # External displays are intentionally kept at native 1x. Do not inherit
+    # a stale scale from the boot-time wildcard monitor rule.
+    above_scale="1"
+    right_scale="1"
+    laptop_scale="$(printf '%s\n' "$laptop_json" | jq -r '.scale')"
+    above_width="$(printf '%s\n' "$above_json" | logical_width_for_scale_json "$above_scale")"
+    above_height="$(printf '%s\n' "$above_json" | logical_height_for_scale_json "$above_scale")"
+    laptop_x="0"
+    laptop_y="$above_height"
+
+    # Keep the laptop directly below the first configured work monitor, with
+    # the second external to its right.
+    apply_monitor "$above_name" "$above_mode" "0x0" "$above_scale"
+    apply_monitor "$right_name" "$right_mode" "${above_width}x0" "$right_scale"
+    apply_monitor "$INTERNAL_MONITOR" "$laptop_mode" "${laptop_x}x${laptop_y}" "$laptop_scale"
     pin_workspace_to_monitor 1 "$INTERNAL_MONITOR"
-    pin_workspace_to_monitor 2 "$left_name"
+    pin_workspace_to_monitor 2 "$above_name"
     pin_workspace_to_monitor 3 "$right_name"
+    focus_workspace 1
     notify_profile "Work"
     echo "Applied work profile"
 }
 
 apply_home() {
-    local external_json external_name external_target external_height
+    local external_json external_name external_target external_height external_mode laptop_json laptop_mode
 
     external_json="$(profile_external_json "$HOME_DESC")"
     external_name="$(printf '%s\n' "$external_json" | name_for_json)"
     external_target="$(printf '%s\n' "$external_json" | target_for_json)"
     external_height="$(printf '%s\n' "$external_json" | logical_height_for_json)"
+    external_mode="$(printf '%s\n' "$external_json" | mode_for_json)"
+    laptop_json="$(json_monitors | jq -c --arg internal "$INTERNAL_MONITOR" '.[] | select(.disabled == false and .name == $internal)')"
+    laptop_mode="$(printf '%s\n' "$laptop_json" | mode_for_json)"
 
-    keyword_monitor "$external_target,preferred,0x0,1"
-    keyword_monitor "$INTERNAL_MONITOR,preferred,0x${external_height},$LAPTOP_SCALE"
+    apply_monitor "$external_name" "$external_mode" "0x0" "1"
+    apply_monitor "$INTERNAL_MONITOR" "$laptop_mode" "0x${external_height}" "$LAPTOP_SCALE"
     pin_single_external_workspaces "$external_name"
     notify_profile "Home"
     echo "Applied home profile"
 }
 
 apply_travel() {
-    local external_json external_name external_target
+    local external_json external_name external_target external_mode laptop_json laptop_mode
 
     external_json="$(profile_external_json "$TRAVEL_DESC")"
     external_name="$(printf '%s\n' "$external_json" | name_for_json)"
     external_target="$(printf '%s\n' "$external_json" | target_for_json)"
+    external_mode="$(printf '%s\n' "$external_json" | mode_for_json)"
+    laptop_json="$(json_monitors | jq -c --arg internal "$INTERNAL_MONITOR" '.[] | select(.disabled == false and .name == $internal)')"
+    laptop_mode="$(printf '%s\n' "$laptop_json" | mode_for_json)"
 
-    keyword_monitor "$INTERNAL_MONITOR,preferred,0x0,$LAPTOP_SCALE"
-    keyword_monitor "$external_target,preferred,${LAPTOP_LOGICAL_WIDTH}x0,1"
+    apply_monitor "$INTERNAL_MONITOR" "$laptop_mode" "0x0" "$LAPTOP_SCALE"
+    apply_monitor "$external_name" "$external_mode" "${LAPTOP_LOGICAL_WIDTH}x0" "1"
     pin_single_external_workspaces "$external_name"
     notify_profile "Travel"
     echo "Applied travel profile"
@@ -275,7 +334,7 @@ apply_travel() {
 apply_auto() {
     local count
 
-    if connected_desc "$WORK_LEFT_DESC" && connected_desc "$WORK_RIGHT_DESC"; then
+    if connected_desc "$WORK_ABOVE_DESC" && connected_desc "$WORK_RIGHT_DESC"; then
         apply_work
         return
     fi
@@ -355,7 +414,7 @@ show_status() {
     '
     echo
     echo "Configured profiles:"
-    echo "  work left:  ${WORK_LEFT_DESC:-unconfigured}"
+    echo "  work above: ${WORK_ABOVE_DESC:-unconfigured}"
     echo "  work right: ${WORK_RIGHT_DESC:-unconfigured}"
     echo "  home:       ${HOME_DESC:-not learned}"
     echo "  travel:     ${TRAVEL_DESC:-not learned}"

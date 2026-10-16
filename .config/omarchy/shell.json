@@ -16,7 +16,7 @@
       ],
       "left": [
         { "id": "demper.menu" },
-        { "id": "omarchy.workspaces" }
+        { "id": "demper.workspaces" }
       ],
       "right": [
         { "id": "demper.tray" },
@@ -26,6 +26,7 @@
         { "id": "omarchy.network" },
         { "id": "omarchy.audio" },
         { "id": "demper.monitor" },
+        { "id": "demper.cpu" },
         { "id": "demper.power" }
       ]
     },
@@ -36,12 +37,16 @@
     "lock": 300,
     "screensaver": 150
   },
-  "plugins": [],
+  "plugins": [
+    { "id": "demper.osd" }
+  ],
   "version": 1,
   "disabledPlugins": [
-    "omarchy.menu"
+    "omarchy.menu",
+    "omarchy.osd"
   ],
   "cloneSourceRestores": [
-    "demper.menu"
+    "demper.menu",
+    "demper.osd"
   ]
 }

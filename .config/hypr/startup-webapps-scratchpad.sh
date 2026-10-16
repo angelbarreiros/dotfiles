@@ -141,36 +141,25 @@ keep_app_running() {
     local desktop_entry="$2"
 
     if launch_app_if_missing "$app" "$desktop_entry"; then
-        sleep 0.5
         minimize_app "$app" || true
     fi
 }
 
 minimize_app() {
     local app="$1"
-    local class_name addresses address
+    local addresses address
 
     if ! app_is_running "$app"; then
         log "no $app window found to hide"
         return 1
     fi
 
-    if ! command -v wlrctl >/dev/null 2>&1; then
-        addresses=$(app_addresses "$app")
-        while IFS= read -r address; do
-            [[ -n "$address" ]] || continue
-            log "wlrctl missing; moving $app window $address to special:webapps"
-            hyprctl dispatch movetoworkspacesilent "special:webapps,address:$address" >/dev/null 2>&1 || true
-        done <<< "$addresses"
-        return 0
-    fi
-
-    class_name=$(app_class "$app")
-    log "minimizing $app window with wlrctl"
-    wlrctl window minimize "app_id:$class_name" >/dev/null 2>&1 || {
-        log "failed to minimize $app"
-        return 1
-    }
+    addresses=$(app_addresses "$app")
+    while IFS= read -r address; do
+        [[ -n "$address" ]] || continue
+        log "moving $app window $address to special:scratchpad"
+        hyprctl dispatch movetoworkspacesilent "special:scratchpad,address:$address" >/dev/null 2>&1 || true
+    done <<< "$addresses"
 }
 
 main() {

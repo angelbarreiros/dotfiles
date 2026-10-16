@@ -1,0 +1,6 @@
+[Unit]
+Description=Hold a systemd idle/sleep inhibitor while Omarchy stay-awake is on
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/systemd-inhibit --what=idle:sleep --who="Omarchy stay-awake" --why="Stay awake is enabled in the bar" /bin/bash -c 'while [ -e "$HOME/.local/state/omarchy/indicators/stay-awake" ]; do sleep 2; done'

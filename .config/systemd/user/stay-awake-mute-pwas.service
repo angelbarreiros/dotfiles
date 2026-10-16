@@ -1,0 +1,9 @@
+[Unit]
+Description=Mute WhatsApp and Gmail PWAs while Omarchy stay-awake is on
+
+[Service]
+ExecStart=%h/.config/hypr/scripts/stay-awake-mute-pwas.sh
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

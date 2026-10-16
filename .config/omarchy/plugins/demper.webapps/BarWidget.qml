@@ -10,13 +10,14 @@ BarWidget {
 
   property bool gmailRunning: false
   property bool whatsappRunning: false
-  readonly property real webappGap: Style.space(9)
-  readonly property real trailingGap: Style.space(9)
+  // Match the bar's native module spacing: adjacent slots touch, while the
+  // icon slot itself provides the visual separation.
+  readonly property real webappGap: 0
+  readonly property real trailingGap: 0
 
-  implicitWidth: (gmailRunning ? gmailButton.implicitWidth : 0)
-               + (whatsappRunning ? whatsappButton.implicitWidth : 0)
-               + (gmailRunning && whatsappRunning ? webappGap : 0)
-               + (gmailRunning || whatsappRunning ? trailingGap : 0)
+  implicitWidth: (gmailRunning || whatsappRunning)
+    ? webappsRow.implicitWidth + trailingGap
+    : 0
   implicitHeight: Math.max(gmailButton.implicitHeight, whatsappButton.implicitHeight)
 
   function refresh() {
@@ -55,16 +56,18 @@ BarWidget {
   }
 
   Row {
+    id: webappsRow
     anchors.fill: parent
     spacing: root.webappGap
 
     BarIconButton {
       id: gmailButton
       bar: root.bar
+      visible: root.gmailRunning
       text: "󰊫"
-      slotSize: Style.bar.statusSlot
+      slotSize: Style.bar.iconSlot
       opticalSize: Style.bar.iconCanvas
-      fixedWidth: root.gmailRunning ? Style.bar.statusSlot : 0
+      fixedWidth: root.gmailRunning ? Style.bar.iconSlot : 0
       tooltipText: "Gmail"
       onPressed: function(button) {
         if (button === Qt.LeftButton) root.launch("~/.config/hypr/scripts/launch-or-focus-pwa-gmail.sh")
@@ -74,10 +77,11 @@ BarWidget {
     BarIconButton {
       id: whatsappButton
       bar: root.bar
+      visible: root.whatsappRunning
       text: "󰖣"
-      slotSize: Style.bar.statusSlot
+      slotSize: Style.bar.iconSlot
       opticalSize: Style.bar.iconCanvas
-      fixedWidth: root.whatsappRunning ? Style.bar.statusSlot : 0
+      fixedWidth: root.whatsappRunning ? Style.bar.iconSlot : 0
       tooltipText: "WhatsApp"
       onPressed: function(button) {
         if (button === Qt.LeftButton) root.launch("~/.config/hypr/scripts/launch-or-focus-pwa-whatsapp.sh")
