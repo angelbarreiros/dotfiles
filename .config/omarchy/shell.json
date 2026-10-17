@@ -3,31 +3,61 @@
     "centerAnchor": "omarchy.clock",
     "layout": {
       "center": [
-        { "id": "omarchy.indicators" },
+        {
+          "id": "omarchy.indicators"
+        },
         {
           "format": "dddd HH:mm",
           "formatAlt": "d MMMM 'W'ww yyyy",
           "id": "omarchy.clock",
-          "verticalFormat": "HH\\n—\\nmm"
+          "verticalFormat": "HH\\n\u2014\\nmm"
         },
-        { "id": "omarchy.keyboard-layout" },
-        { "id": "omarchy.weather" },
-        { "id": "omarchy.system-update" }
+        {
+          "id": "omarchy.keyboard-layout"
+        },
+        {
+          "id": "omarchy.weather"
+        },
+        {
+          "id": "omarchy.system-update"
+        }
       ],
       "left": [
-        { "id": "demper.menu" },
-        { "id": "demper.workspaces" }
+        {
+          "id": "omarchy.menu"
+        },
+        {
+          "id": "demper.workspaces"
+        }
       ],
       "right": [
-        { "id": "demper.tray" },
-        { "id": "demper.webapps" },
-        { "id": "omarchy.agents" },
-        { "id": "omarchy.bluetooth" },
-        { "id": "omarchy.network" },
-        { "id": "omarchy.audio" },
-        { "id": "demper.monitor" },
-        { "id": "demper.cpu" },
-        { "id": "demper.power" }
+        {
+          "id": "demper.tray"
+        },
+        {
+          "id": "demper.webapps"
+        },
+        {
+          "id": "omarchy.agents"
+        },
+        {
+          "id": "omarchy.bluetooth"
+        },
+        {
+          "id": "omarchy.network"
+        },
+        {
+          "id": "omarchy.audio"
+        },
+        {
+          "id": "demper.monitor"
+        },
+        {
+          "id": "demper.cpu"
+        },
+        {
+          "id": "demper.power"
+        }
       ]
     },
     "position": "top",
@@ -38,15 +68,15 @@
     "screensaver": 150
   },
   "plugins": [
-    { "id": "demper.osd" }
+    {
+      "id": "demper.osd"
+    }
   ],
   "version": 1,
   "disabledPlugins": [
-    "omarchy.menu",
     "omarchy.osd"
   ],
   "cloneSourceRestores": [
-    "demper.menu",
     "demper.osd"
   ]
 }

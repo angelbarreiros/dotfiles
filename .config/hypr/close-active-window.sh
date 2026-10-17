@@ -18,7 +18,6 @@ fi
 if hyprctl -j layers 2>/dev/null | jq -e '
     .. | objects
     | select(.namespace? == "omarchy-menu")
-    | select((.mapped? // false) == true or (.visible? // false) == true)
 ' >/dev/null 2>&1; then
     omarchy-menu close >/dev/null 2>&1 || true
     exit 0

@@ -28,6 +28,7 @@ REMOVED_MANAGED_FILES=(
 )
 REMOVED_MANAGED_PATHS=(
     ".config/tmux"
+    ".config/omarchy/plugins/demper.menu"
 )
 SYSTEM_FILE_SPECS=(
     "system/libinput/90-tuxedo-infinitybook-pixart-touchpad.quirks:/etc/libinput/90-tuxedo-infinitybook-pixart-touchpad.quirks"
