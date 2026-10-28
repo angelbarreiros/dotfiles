@@ -19,24 +19,30 @@ is_pwa_pid() {
 }
 
 apply() {
-    local want=0 id pid
+    local want=0 id pid muted
     [[ -e "$FLAG" ]] && want=1
 
-    while IFS=$'\t' read -r id pid; do
-        [[ -n "$id" && -n "$pid" ]] || continue
+    # Only touch streams whose mute state differs, so our own changes don't
+    # trigger another round of sink-input events.
+    while IFS=$'\t' read -r id pid muted; do
+        [[ -n "$id" && -n "$pid" && "$muted" != "$want" ]] || continue
         is_pwa_pid "$pid" && pactl set-sink-input-mute "$id" "$want"
     done < <(pactl --format=json list sink-inputs 2>/dev/null \
-        | jq -r '.[] | [.index, (.properties["application.process.id"] // "")] | @tsv')
+        | jq -r '.[] | [.index, (.properties["application.process.id"] // ""), (if .mute then 1 else 0 end)] | @tsv')
 }
 
 apply
 # React to new audio streams immediately, and re-check every 2s for flag changes.
+# Keep a single long-lived subscriber: restarting it on every timeout leaked
+# pactl processes until pipewire-pulse refused all new clients.
+coproc SUB { exec pactl subscribe 2>/dev/null; }
 while true; do
-    coproc SUB { pactl subscribe 2>/dev/null; }
-    while read -r -t 2 -u "${SUB[0]}" line; do
+    if read -r -t 2 -u "${SUB[0]}" line; then
         [[ "$line" == *"sink-input"* ]] && apply
-    done
-    kill "$SUB_PID" 2>/dev/null
-    wait "$SUB_PID" 2>/dev/null
-    apply
+    elif (($? > 128)); then
+        apply
+    else
+        # pactl exited (e.g. pipewire-pulse restarted); let systemd restart us.
+        exit 1
+    fi
 done

@@ -275,6 +275,8 @@ if command -v systemctl >/dev/null 2>&1; then
     echo "Enabling stay-awake systemd inhibitor..."
     systemctl --user daemon-reload
     systemctl --user enable --now stay-awake-inhibit.path stay-awake-mute-pwas.service || true
+    # Pick up script changes in an already running service.
+    systemctl --user restart stay-awake-mute-pwas.service || true
 fi
 
 if command -v update-desktop-database >/dev/null 2>&1; then
